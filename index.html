@@ -193,6 +193,17 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .tgl[aria-checked="true"]{background:var(--accent)}
 .tgl[aria-checked="true"]::after{transform:translateX(18px)}
 
+.adv{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);overflow:hidden}
+.adv summary{padding:12px 13px;font-size:13px;font-weight:600;color:var(--text-soft);cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:8px}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:"›";font-size:17px;color:var(--accent);transition:transform .18s;display:inline-block}
+.adv[open] summary::before{transform:rotate(90deg)}
+.adv summary:hover{color:var(--accent)}
+.adv-body{padding:2px 13px 14px;border-top:1px solid var(--line)}
+.advp{font-size:12.5px;color:var(--text-soft);line-height:1.55;margin:12px 0 14px}
+.adv .input{background:var(--panel)}
+
 .err{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;line-height:1.45}
 .err.show{display:block}
 
@@ -412,6 +423,38 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
         <div class="tgl" id="tgl-stun" role="switch" aria-checked="true" tabindex="0"></div>
       </div>
 
+      <details class="adv" id="adv">
+        <summary>Opciones avanzadas · VPN y redes difíciles</summary>
+
+        <div class="adv-body">
+          <p class="advp">Si estás detrás de una VPN, de una red corporativa o de NAT simétrico, la conexión directa puede no armarse. Hay dos caminos, y ninguno de los dos ve tus mensajes.</p>
+
+          <div class="field">
+            <label class="lbl" for="vpn-ip">1 · Tu IP dentro de la VPN o de la red local</label>
+            <input class="input" id="vpn-ip" placeholder="ej: 100.101.102.103" spellcheck="false" autocomplete="off">
+            <div class="hint">Chrome esconde tu IP local detrás de un nombre <b>.local</b> que no se resuelve a través de un túnel VPN. Si escribís acá la IP que te dio la VPN, se agrega como candidato al código y la conexión va <b>directa por el túnel</b>, sin STUN ni relay. Sacala con <b>tailscale ip -4</b>, <b>ip addr</b>, <b>ifconfig</b> o <b>ipconfig</b>. Los dos tienen que estar en la misma VPN.</div>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="turn-url">2 · Tu propio servidor TURN (relay)</label>
+            <input class="input" id="turn-url" placeholder="turn:mi-servidor.com:3478  ·  turns:…:443?transport=tcp" spellcheck="false" autocomplete="off">
+            <div class="btn-row" style="margin-top:8px">
+              <input class="input" id="turn-user" placeholder="usuario" autocomplete="off">
+              <input class="input" id="turn-pass" type="password" placeholder="contraseña" autocomplete="off">
+            </div>
+            <div class="hint">Último recurso, para cuando nada más funciona. El TURN reenvía paquetes <b>ya cifrados</b>: ve que hablás con alguien, no <b>qué</b> decís, porque el DTLS se negocia punta a punta. Aun así es un intermediario en la red, así que conviene que sea tuyo (coturn) y no uno público.</div>
+          </div>
+
+          <div class="switch" style="margin-top:10px">
+            <div>
+              <label for="tgl-relay" style="font-weight:600">Forzar el paso por el relay</label>
+              <small>Ignora las rutas directas. Más lento, pero no le mostrás tu IP real a la otra persona. Necesita un TURN configurado.</small>
+            </div>
+            <div class="tgl" id="tgl-relay" role="switch" aria-checked="false" tabindex="0"></div>
+          </div>
+        </div>
+      </details>
+
       <div class="foot">
         Nada se guarda en ningún lado. Al cerrar la pestaña, la conversación desaparece.
       </div>
@@ -586,6 +629,9 @@ const S = {
   remoteSdp: '',
   connected: false,
   useStun: true,
+  manualIp: '',
+  turn: { url: '', user: '', pass: '' },
+  forceRelay: false,
   msgs: new Map(),       // id -> {el, node}
   lastDir: null,
   lastDay: null,
@@ -672,10 +718,34 @@ async function unpack(code){
 
 /* ───────────── WebRTC ───────────── */
 function rtcConfig(){
-  return {
-    iceServers: S.useStun ? [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] : [],
-    iceCandidatePoolSize: 0
-  };
+  const servers = [];
+  if (S.useStun) servers.push({ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] });
+  if (S.turn.url) servers.push({ urls: S.turn.url, username: S.turn.user, credential: S.turn.pass });
+  const cfg = { iceServers: servers, iceCandidatePoolSize: 0 };
+  if (S.turn.url && S.forceRelay) cfg.iceTransportPolicy = 'relay';
+  return cfg;
+}
+
+/* Chrome reemplaza la IP local por un nombre mDNS (xxxx.local) que solo se
+   resuelve por multicast en la misma LAN: a través de una VPN no resuelve y
+   la ruta directa se pierde aunque haya conectividad IP perfecta.
+   Si el usuario nos dice su IP en el túnel, duplicamos cada candidato host
+   con esa dirección. ICE prueba todos y se queda con el que responde. */
+function withManualIp(sdp){
+  const ip = S.manualIp;
+  if (!ip) return sdp;
+  const eol = sdp.includes('\r\n') ? '\r\n' : '\n';
+  const out = [];
+  let n = 0;
+  for (const line of sdp.split(/\r?\n/)){
+    out.push(line);
+    const m = /^a=candidate:(\S+) (\d+) (udp|tcp) (\d+) (\S+) (\d+) typ host(.*)$/i.exec(line);
+    if (m && m[5].toLowerCase() !== ip.toLowerCase()){
+      // misma foundation base pero distinta, para que ICE los trate por separado
+      out.push(`a=candidate:${m[1]}${++n} ${m[2]} ${m[3]} ${m[4]} ${ip} ${m[6]} typ host${m[7]}`);
+    }
+  }
+  return out.join(eol);
 }
 
 function newPeer(){
@@ -684,7 +754,7 @@ function newPeer(){
     const st = pc.connectionState;
     if (st === 'connected') markConnected();
     else if (st === 'disconnected') setStatus('bad', 'conexión inestable…');
-    else if (st === 'failed') linkDown('Se perdió la conexión: no hay una ruta directa disponible entre ambas redes.');
+    else if (st === 'failed') linkDown('Se perdió la conexión: no hay una ruta disponible entre ambas redes. Con VPN o NAT simétrico probá las <b>Opciones avanzadas</b> de la pantalla inicial.');
     else if (st === 'closed') setStatus('bad', 'desconectado');
   };
   pc.oniceconnectionstatechange = () => {
@@ -724,7 +794,7 @@ async function startHost(){
   await S.pc.setLocalDescription(offer);
   await gatherComplete(S.pc);
   S.localSdp = S.pc.localDescription.sdp;
-  return pack('o', S.localSdp);
+  return pack('o', withManualIp(S.localSdp));
 }
 
 async function hostAccept(code){
@@ -746,7 +816,7 @@ async function startGuest(code){
   await S.pc.setLocalDescription(answer);
   await gatherComplete(S.pc);
   S.localSdp = S.pc.localDescription.sdp;
-  return pack('a', S.localSdp);
+  return pack('a', withManualIp(S.localSdp));
 }
 
 /* ───────────── Protocolo del canal ───────────── */
@@ -1148,6 +1218,47 @@ function toggleStun(){
 tgl.addEventListener('click', toggleStun);
 tgl.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleStun(); } });
 
+/* ── Opciones avanzadas (persisten en este navegador) ── */
+const IP_RE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]{2,45})$/;
+function loadAdv(){
+  try {
+    const a = JSON.parse(localStorage.getItem('zh:adv') || '{}');
+    S.manualIp = a.ip || '';
+    S.turn = { url: a.turnUrl || '', user: a.turnUser || '', pass: a.turnPass || '' };
+    S.forceRelay = !!a.relay;
+  } catch {}
+  $('#vpn-ip').value = S.manualIp;
+  $('#turn-url').value = S.turn.url;
+  $('#turn-user').value = S.turn.user;
+  $('#turn-pass').value = S.turn.pass;
+  $('#tgl-relay').setAttribute('aria-checked', String(S.forceRelay));
+  if (S.manualIp || S.turn.url) $('#adv').open = true;
+}
+function saveAdv(){
+  localStorage.setItem('zh:adv', JSON.stringify({
+    ip: S.manualIp, turnUrl: S.turn.url, turnUser: S.turn.user, turnPass: S.turn.pass, relay: S.forceRelay
+  }));
+}
+$('#vpn-ip').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  S.manualIp = (v && IP_RE.test(v)) ? v : '';
+  e.target.style.borderColor = (v && !S.manualIp) ? 'var(--danger)' : '';
+  saveAdv();
+});
+$('#turn-url').addEventListener('input', e => { S.turn.url = e.target.value.trim(); saveAdv(); });
+$('#turn-user').addEventListener('input', e => { S.turn.user = e.target.value; saveAdv(); });
+$('#turn-pass').addEventListener('input', e => { S.turn.pass = e.target.value; saveAdv(); });
+const tglRelay = $('#tgl-relay');
+function toggleRelay(){
+  if (!S.turn.url && !S.forceRelay) return toast('Configurá primero un servidor TURN');
+  S.forceRelay = !S.forceRelay;
+  tglRelay.setAttribute('aria-checked', String(S.forceRelay));
+  saveAdv();
+}
+tglRelay.addEventListener('click', toggleRelay);
+tglRelay.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleRelay(); } });
+loadAdv();
+
 $('#btn-host').addEventListener('click', async () => {
   card('host');
   try {
@@ -1182,7 +1293,7 @@ $('#btn-connect-host').addEventListener('click', async () => {
     setTimeout(() => {
       if (!S.connected){
         btn.disabled = false; btn.textContent = 'Conectar';
-        showErr('#host-err', 'No se pudo establecer la conexión directa. Puede que alguna de las dos redes bloquee WebRTC (algunas VPN o redes corporativas). Probá con STUN activado o desde otra red.');
+        showErr('#host-err', 'No se pudo establecer la conexión directa. Suele pasar con VPN, redes corporativas o NAT simétrico. Abrí «Opciones avanzadas»: si los dos están en la misma VPN, cargá tu IP del túnel; si no, configurá un TURN propio. Después generá una invitación nueva.');
       }
     }, 15000);
   } catch (e){

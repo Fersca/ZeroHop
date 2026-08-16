@@ -39,9 +39,40 @@ Los códigos son el SDP de WebRTC comprimido con `deflate-raw` y codificado en b
 - Por defecto se usan servidores **STUN** públicos de Google, que sirven únicamente para
   descubrir la IP pública y atravesar el NAT: no ven ni transportan el contenido. Se pueden
   apagar con un switch en la pantalla inicial (útil si los dos están en la misma red local).
-- No hay servidor **TURN**, así que si ambas redes tienen NAT simétrico (algunas redes
-  corporativas, ciertas VPN o redes móviles) la conexión directa puede no establecerse.
-  Agregar un TURN implicaría un relay intermedio y por eso quedó fuera a propósito.
+## Si estás detrás de una VPN
+
+Hay dos problemas distintos, con soluciones distintas. Ambos se atacan desde
+**Opciones avanzadas** en la pantalla inicial.
+
+### 1. Los dos están en la misma VPN (Tailscale, WireGuard, ZeroTier, VPN de la empresa)
+
+Este es el caso fácil, y encima es el mejor de todos: hay conectividad IP directa entre
+las dos máquinas. El obstáculo es que **Chrome oculta tu IP local detrás de un nombre
+mDNS `xxxxx.local`**, que solo se resuelve por multicast dentro de la misma LAN. Un túnel
+VPN no transporta ese multicast, así que el otro lado no puede resolver el nombre y ICE
+no encuentra ruta, aunque los dos se hagan ping sin problema.
+
+Solución: escribí tu IP del túnel en **Opciones avanzadas → Tu IP dentro de la VPN**
+(la sacás con `tailscale ip -4`, `ip addr`, `ifconfig` o `ipconfig`). ZeroHop agrega esa
+dirección como candidato extra al código que compartís, y la conexión va **directa por el
+túnel**: sin STUN, sin relay, sin nada en el medio. Los dos tienen que cargar la suya.
+
+### 2. NAT simétrico, redes corporativas, redes móviles
+
+Acá no hay ruta directa posible: el NAT de cada lado cambia el puerto según el destino y
+el agujero que abre el hole punching no sirve. La única salida es un **TURN**, que reenvía
+los paquetes. Se configura en las mismas opciones avanzadas.
+
+Un TURN es un intermediario de red, pero **no es un servidor de chat**: el DTLS se negocia
+punta a punta entre los dos navegadores, así que el relay mueve bytes cifrados que no puede
+leer. Ve que dos IPs hablan y cuánto tráfico hay; no ve el contenido. Igual conviene que
+sea tuyo (por ejemplo [coturn](https://github.com/coturn/coturn)) y no uno público.
+
+El switch **Forzar el paso por el relay** hace que ni siquiera se intenten rutas directas:
+más lento, pero no le mostrás tu IP real a la otra persona.
+
+> Muchas VPN comerciales funcionan sin tocar nada: si la VPN deja pasar UDP y no hace NAT
+> simétrico, el STUN por defecto alcanza. Probá primero así.
 
 ## Compatibilidad
 
