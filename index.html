@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>ZeroHop · Chat P2P sin servidor</title>
+<meta name="description" content="Chat privado navegador a navegador con WebRTC. Sin servidor intermedio, sin cuentas, sin historial.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23d32f2f'/><path d='M25 32h50v30H46l-13 12V62H25z' fill='white'/></svg>">
+<style>
+/* ─────────────────────────────  TEMA  ───────────────────────────── */
+:root{
+  --red-900:#7f1418;
+  --red-800:#9c1c22;
+  --red-700:#b71c1c;
+  --red-600:#c62828;
+  --red-500:#d32f2f;
+  --red-400:#e53935;
+  --red-300:#ef5350;
+
+  --app-bg:#f0e6e6;
+  --panel:#ffffff;
+  --panel-2:#f7f2f2;
+  --header:linear-gradient(135deg,#b71c1c 0%,#d32f2f 55%,#e53935 100%);
+  --header-solid:#b71c1c;
+  --text:#14100f;
+  --text-soft:#6b5f5f;
+  --text-faint:#9c8f8f;
+  --line:#e6dada;
+  --bubble-in:#ffffff;
+  --bubble-in-text:#14100f;
+  --bubble-out:#ffdadb;
+  --bubble-out-text:#2b0f10;
+  --tick:#9c8f8f;
+  --tick-read:#d32f2f;
+  --shadow:0 1px 2px rgba(60,20,20,.14);
+  --shadow-lg:0 18px 50px rgba(80,20,20,.22);
+  --accent:var(--red-600);
+  --on-accent:#fff;
+  --danger:#b3261e;
+  --ok:#1f8a4c;
+  --chat-doodle:rgba(183,28,28,.05);
+  --radius:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="dark"]{
+  --app-bg:#100b0b;
+  --panel:#1b1414;
+  --panel-2:#241a1a;
+  --header:linear-gradient(135deg,#5c0f12 0%,#7f1418 55%,#a3211f 100%);
+  --header-solid:#5c0f12;
+  --text:#f3eaea;
+  --text-soft:#b5a4a4;
+  --text-faint:#8a7878;
+  --line:#37292a;
+  --bubble-in:#241a1a;
+  --bubble-in-text:#f3eaea;
+  --bubble-out:#7a1a1e;
+  --bubble-out-text:#ffecec;
+  --tick:#b5a4a4;
+  --tick-read:#ff8a8a;
+  --shadow:0 1px 2px rgba(0,0,0,.5);
+  --shadow-lg:0 18px 50px rgba(0,0,0,.55);
+  --accent:var(--red-500);
+  --danger:#ff7b72;
+  --ok:#4ad07f;
+  --chat-doodle:rgba(255,255,255,.045);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  background:var(--app-bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(150,90,90,.35);border-radius:99px}
+
+.app{
+  height:100dvh;
+  max-width:1080px;
+  margin:0 auto;
+  background:var(--panel);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+@media(min-width:900px){
+  body{padding:22px}
+  .app{height:calc(100dvh - 44px);border-radius:14px;box-shadow:var(--shadow-lg)}
+}
+
+/* ─────────────────────────────  PANTALLAS  ───────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--panel);
+  transition:transform .32s cubic-bezier(.22,.7,.24,1),opacity .22s ease}
+.screen[hidden]{display:none}
+.screen.enter{transform:translateX(24px);opacity:0}
+
+/* ── Onboarding ── */
+#setup{overflow-y:auto;background:var(--app-bg)}
+.hero{
+  background:var(--header);color:#fff;padding:34px 22px 54px;text-align:center;position:relative;overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
+  background:var(--app-bg);
+  border-radius:100% 100% 0 0 / 100% 100% 0 0;
+}
+.hero-mark{
+  width:66px;height:66px;border-radius:20px;margin:0 auto 12px;
+  background:rgba(255,255,255,.16);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);
+}
+.hero-mark svg{width:36px;height:36px;fill:#fff}
+.hero h1{margin:0;font-size:26px;letter-spacing:-.4px;font-weight:700}
+.hero p{margin:7px auto 0;max-width:460px;font-size:14px;opacity:.9;line-height:1.5}
+.badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.badge{font-size:11px;background:rgba(255,255,255,.18);padding:5px 10px;border-radius:99px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+
+.wrap{width:100%;max-width:560px;margin:0 auto;padding:0 18px 40px}
+.card{
+  background:var(--panel);border-radius:18px;box-shadow:var(--shadow-lg);
+  padding:20px;margin-top:-26px;position:relative;z-index:1;border:1px solid var(--line);
+}
+.card + .card{margin-top:14px}
+.card h2{margin:0 0 4px;font-size:16px;letter-spacing:-.2px}
+.card .sub{margin:0 0 16px;font-size:13px;color:var(--text-soft);line-height:1.5}
+
+.field{margin-bottom:14px}
+label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.6px}
+.input,.code-area{
+  width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:12px;
+  padding:12px 14px;outline:none;transition:border-color .15s,box-shadow .15s;color:var(--text)
+}
+.input:focus,.code-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(211,47,47,.14)}
+.code-area{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
+  line-height:1.45;resize:vertical;min-height:96px;word-break:break-all}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:13px 18px;border-radius:12px;font-weight:600;font-size:15px;
+  transition:transform .12s ease,filter .15s ease,background .15s ease;width:100%
+}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btn-primary{background:var(--header-solid);background-image:var(--header);color:#fff;box-shadow:0 6px 18px rgba(183,28,28,.3)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:var(--panel-2);color:var(--text);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-row{display:flex;gap:10px}
+.btn svg{width:19px;height:19px;fill:currentColor;flex:none}
+.btn-sm{padding:9px 12px;font-size:13px;width:auto;border-radius:10px}
+
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.step{flex:1;height:4px;border-radius:99px;background:var(--line)}
+.step.on{background:var(--accent)}
+.step-label{font-size:12px;color:var(--text-soft);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+
+.codebox{position:relative}
+.codebox .code-area{padding-right:14px;background:var(--panel-2)}
+.copy-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--text-faint);line-height:1.5;margin-top:8px}
+.hint b{color:var(--text-soft)}
+
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+  border-top-color:#fff;animation:spin .7s linear infinite;flex:none}
+.spinner.dark{border-color:rgba(180,120,120,.3);border-top-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.note{
+  display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--text-soft);
+  background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;line-height:1.5
+}
+.note svg{width:16px;height:16px;fill:var(--accent);flex:none;margin-top:1px}
+
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);font-size:13px}
+.switch small{display:block;color:var(--text-faint);font-size:11.5px;margin-top:2px;line-height:1.4}
+.tgl{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.tgl::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tgl[aria-checked="true"]{background:var(--accent)}
+.tgl[aria-checked="true"]::after{transform:translateX(18px)}
+
+.err{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;line-height:1.45}
+.err.show{display:block}
+
+.foot{text-align:center;font-size:11.5px;color:var(--text-faint);margin-top:18px;line-height:1.6}
+
+/* ─────────────────────────────  CHAT  ───────────────────────────── */
+.topbar{
+  background:var(--header);color:#fff;display:flex;align-items:center;gap:11px;
+  padding:calc(9px + env(safe-area-inset-top,0px)) 12px 9px;flex:none;
+  box-shadow:0 1px 6px rgba(0,0,0,.18);z-index:3;position:relative
+}
+.avatar{
+  width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.2);font-weight:700;font-size:16px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)
+}
+.peer{flex:1;min-width:0}
+.peer .nm{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peer .st{font-size:12px;opacity:.88;display:flex;align-items:center;gap:5px;height:15px}
+.dot{width:7px;height:7px;border-radius:50%;background:#7ee39b;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.dot.off{background:#ffd280}
+.dot.bad{background:#ff8f8f}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;
+  transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.15)}
+.icon-btn svg{width:21px;height:21px;fill:currentColor}
+
+.menu{
+  position:absolute;top:calc(100% - 4px);right:8px;background:var(--panel);border-radius:12px;
+  box-shadow:var(--shadow-lg);border:1px solid var(--line);min-width:210px;padding:6px;z-index:20;
+  transform-origin:top right;animation:pop .13s ease
+}
+@keyframes pop{from{opacity:0;transform:scale(.94)}}
+.menu[hidden]{display:none}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border-radius:9px;
+  font-size:14px;color:var(--text);text-align:left}
+.menu button:hover{background:var(--panel-2)}
+.menu button svg{width:17px;height:17px;fill:var(--text-soft)}
+.menu .sep{height:1px;background:var(--line);margin:5px 2px}
+.menu button.danger{color:var(--danger)}
+.menu button.danger svg{fill:var(--danger)}
+
+.msgs{
+  flex:1;overflow-y:auto;padding:14px 12px 6px;display:flex;flex-direction:column;gap:2px;
+  background-color:var(--app-bg);
+  background-image:
+    radial-gradient(circle at 12% 22%, var(--chat-doodle) 0 9px, transparent 9px),
+    radial-gradient(circle at 68% 8%, var(--chat-doodle) 0 5px, transparent 5px),
+    radial-gradient(circle at 88% 62%, var(--chat-doodle) 0 11px, transparent 11px),
+    radial-gradient(circle at 32% 78%, var(--chat-doodle) 0 6px, transparent 6px),
+    radial-gradient(circle at 50% 45%, var(--chat-doodle) 0 3px, transparent 3px);
+  background-size:280px 280px;
+  scroll-behavior:smooth;
+}
+.day{align-self:center;background:var(--panel);color:var(--text-soft);font-size:11.5px;padding:5px 12px;
+  border-radius:99px;margin:10px 0 8px;box-shadow:var(--shadow)}
+.sys{align-self:center;background:var(--panel);color:var(--text-soft);font-size:12px;padding:7px 13px;
+  border-radius:12px;margin:6px 0;box-shadow:var(--shadow);text-align:center;max-width:86%;line-height:1.45}
+.sys b{color:var(--accent)}
+
+.row{display:flex;margin:1px 0;animation:in .18s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.row.out{justify-content:flex-end}
+.bubble{
+  max-width:min(76%,520px);padding:7px 10px 6px;border-radius:12px;box-shadow:var(--shadow);
+  position:relative;font-size:14.8px;line-height:1.42;word-wrap:break-word;overflow-wrap:anywhere
+}
+.bubble::after{content:"";display:block;clear:both}
+.bubble.txt{white-space:pre-wrap}
+.bubble.pic{padding:4px;min-width:0}
+.row.in .bubble{background:var(--bubble-in);color:var(--bubble-in-text);border-top-left-radius:4px}
+.row.out .bubble{background:var(--bubble-out);color:var(--bubble-out-text);border-top-right-radius:4px}
+.row.in.tail .bubble{border-top-left-radius:12px}
+.row.out.tail .bubble{border-top-right-radius:12px}
+.meta{float:right;margin:6px 0 -2px 8px;font-size:10.5px;color:var(--tick);display:flex;align-items:center;gap:3px;
+  user-select:none}
+.row.out .meta{color:var(--tick)}
+.meta svg{width:15px;height:15px;fill:currentColor}
+.meta.read,.row.out .meta.read{color:var(--tick-read)}
+.bubble a{color:var(--accent);text-decoration:underline;word-break:break-all}
+.bubble.pic .meta{position:absolute;right:11px;bottom:11px;margin:0;float:none;
+  background:rgba(15,5,5,.5);color:#fff;padding:2px 7px;border-radius:99px;backdrop-filter:blur(2px)}
+.bubble.pic .meta.read{color:#ffc0c0}
+
+.att{display:flex;align-items:center;gap:10px;min-width:200px}
+.att .tx{min-width:0;flex:1}
+.att .dl{margin-left:6px}
+.att .ic{width:38px;height:38px;border-radius:10px;background:rgba(211,47,47,.14);display:grid;place-items:center;flex:none}
+.att .ic svg{width:19px;height:19px;fill:var(--accent)}
+.att .nm{font-size:13.5px;font-weight:500;word-break:break-all;line-height:1.3}
+.att .sz{font-size:11.5px;color:var(--text-soft);margin-top:2px}
+.att .dl{color:var(--accent);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
+.row.out .att .ic{background:rgba(255,255,255,.45)}
+.row.out .att .ic svg{fill:currentColor}
+.row.out .att .dl,.row.out .att .sz{color:inherit;opacity:.78}
+.row.out .bar i{background:currentColor}
+:root[data-theme="dark"] .row.out .att .ic{background:rgba(255,255,255,.18)}
+.bar{height:3px;background:rgba(0,0,0,.12);border-radius:99px;overflow:hidden;margin-top:7px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .18s ease}
+.bubble img.photo{max-width:100%;border-radius:9px;display:block;margin-bottom:3px;cursor:zoom-in}
+
+.typing{display:flex;gap:4px;align-items:center;padding:3px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--text-faint);animation:bl 1.15s infinite}
+.typing i:nth-child(2){animation-delay:.16s}
+.typing i:nth-child(3){animation-delay:.32s}
+@keyframes bl{0%,60%,100%{opacity:.32;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+.composer{
+  flex:none;padding:8px 10px calc(8px + var(--safe-b));background:var(--app-bg);
+  display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line)
+}
+.cbox{
+  flex:1;display:flex;align-items:flex-end;gap:6px;background:var(--panel);border-radius:22px;
+  padding:5px 6px 5px 8px;box-shadow:var(--shadow)
+}
+#input{
+  flex:1;border:0;outline:none;background:transparent;resize:none;max-height:130px;min-height:26px;
+  padding:8px 2px;font-size:15px;line-height:1.35
+}
+.cbox .icon-btn{color:var(--text-soft);width:36px;height:36px}
+.cbox .icon-btn:hover{background:var(--panel-2);color:var(--accent)}
+#send{
+  width:48px;height:48px;border-radius:50%;background:var(--header-solid);background-image:var(--header);
+  color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 4px 14px rgba(183,28,28,.35);
+  transition:transform .12s ease,filter .15s
+}
+#send:active{transform:scale(.92)}
+#send[disabled]{opacity:.45;box-shadow:none;pointer-events:none}
+#send svg{width:22px;height:22px;fill:#fff}
+
+.emoji{
+  position:absolute;bottom:calc(70px + var(--safe-b));left:12px;right:12px;max-width:340px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);
+  padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;z-index:15;animation:pop .13s ease
+}
+.emoji[hidden]{display:none}
+.emoji button{font-size:21px;padding:5px 0;border-radius:8px;line-height:1.15}
+.emoji button:hover{background:var(--panel-2)}
+
+.sheet{position:absolute;inset:0;background:rgba(20,5,5,.55);display:flex;align-items:flex-end;
+  justify-content:center;z-index:40;animation:fade .16s ease;backdrop-filter:blur(2px)}
+.sheet[hidden]{display:none}
+@keyframes fade{from{opacity:0}}
+.sheet-in{background:var(--panel);border-radius:18px 18px 0 0;width:100%;max-width:560px;
+  padding:20px 20px calc(22px + var(--safe-b));animation:up .22s cubic-bezier(.2,.8,.3,1);max-height:88%;overflow-y:auto}
+@media(min-width:700px){.sheet{align-items:center}.sheet-in{border-radius:18px}}
+@keyframes up{from{transform:translateY(30px);opacity:.4}}
+.sheet-in h3{margin:0 0 4px;font-size:17px}
+.sheet-in p{margin:0 0 16px;font-size:13.5px;color:var(--text-soft);line-height:1.55}
+.safety{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:19px;letter-spacing:2px;
+  text-align:center;background:var(--panel-2);border:1px dashed var(--line);border-radius:12px;padding:16px;
+  color:var(--accent);font-weight:600;word-break:break-all}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kv:last-child{border:0}
+.kv span:first-child{color:var(--text-soft)}
+.kv span:last-child{font-weight:600;text-align:right;word-break:break-all}
+
+.lightbox{position:absolute;inset:0;background:rgba(10,0,0,.92);z-index:60;display:grid;place-items:center;padding:20px}
+.lightbox[hidden]{display:none}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+.lightbox .icon-btn{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:rgba(255,255,255,.14)}
+
+.toast{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--safe-b));
+  background:rgba(25,10,10,.92);color:#fff;font-size:13px;padding:9px 16px;border-radius:99px;z-index:70;
+  animation:pop .15s ease;pointer-events:none;box-shadow:var(--shadow-lg);max-width:86%;text-align:center
+}
+.toast[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════════ PANTALLA 1: SETUP ══════════════════════ -->
+<section class="screen" id="setup">
+  <div class="hero">
+    <div class="hero-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.7 14.9L2 22l5.3-1.3A10 10 0 1 0 12 2Zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.6.6.6-2.5-.2-.4A8 8 0 0 1 12 4Zm-3.2 5.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>
+    </div>
+    <h1>ZeroHop</h1>
+    <p>Chat directo entre dos navegadores. Los mensajes no pasan por ningún servidor: viajan cifrados de punta a punta por WebRTC.</p>
+    <div class="badges">
+      <span class="badge">Sin servidor</span>
+      <span class="badge">Sin cuentas</span>
+      <span class="badge">Sin historial</span>
+      <span class="badge">1 archivo HTML</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- Paso 0: elegir rol -->
+    <div class="card" id="card-role">
+      <h2>Empezá una conversación</h2>
+      <p class="sub">Uno de los dos crea la invitación y se la pasa al otro (por WhatsApp, mail, papel… lo que sea). El otro devuelve su respuesta y listo.</p>
+
+      <div class="field">
+        <label class="lbl" for="myname">Tu nombre</label>
+        <input class="input" id="myname" maxlength="24" placeholder="¿Cómo te ven?" autocomplete="nickname">
+      </div>
+
+      <div class="btn-row" style="flex-direction:column">
+        <button class="btn btn-primary" id="btn-host">
+          <svg viewBox="0 0 24 24"><path d="M12 4a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5a1 1 0 0 1 1-1Z"/></svg>
+          Crear invitación
+        </button>
+        <button class="btn btn-ghost" id="btn-guest">
+          <svg viewBox="0 0 24 24"><path d="M20 6H10.4l-1.7-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-8.6 11.4-3.4-3.4 1.4-1.4 2 2 4.6-4.6L17.4 11l-6 6.4Z"/></svg>
+          Tengo un código de invitación
+        </button>
+      </div>
+
+      <div style="margin-top:16px" class="switch">
+        <div>
+          <label for="tgl-stun" style="font-weight:600">Usar servidores STUN públicos</label>
+          <small>Solo sirven para descubrir tu IP pública y atravesar el router. No ven ni transportan tus mensajes. Apagalo si los dos están en la misma red local.</small>
+        </div>
+        <div class="tgl" id="tgl-stun" role="switch" aria-checked="true" tabindex="0"></div>
+      </div>
+
+      <div class="foot">
+        Nada se guarda en ningún lado. Al cerrar la pestaña, la conversación desaparece.
+      </div>
+    </div>
+
+    <!-- Anfitrión -->
+    <div class="card" id="card-host" hidden>
+      <div class="steps"><div class="step on" id="hs1"></div><div class="step" id="hs2"></div></div>
+      <h2>Paso 1 · Pasale este código</h2>
+      <p class="sub">Copialo y mandáselo a la otra persona por el medio que quieras.</p>
+
+      <div class="codebox">
+        <div id="host-wait" class="note" style="margin-bottom:10px">
+          <div class="spinner dark"></div>
+          <div>Generando tu código de invitación… (unos segundos)</div>
+        </div>
+        <textarea class="code-area" id="offer-out" readonly rows="5" hidden placeholder="…"></textarea>
+        <div class="copy-row" id="offer-actions" hidden>
+          <button class="btn btn-primary btn-sm" data-copy="#offer-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            Copiar código
+          </button>
+          <button class="btn btn-ghost btn-sm" data-share="#offer-out">
+            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
+            Compartir
+          </button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <div class="step-label"><span class="step-num">2</span> Pegá acá la respuesta que te devuelvan</div>
+        <textarea class="code-area" id="answer-in" rows="5" placeholder="Pegá el código de respuesta…" spellcheck="false"></textarea>
+        <div class="err" id="host-err"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-connect-host" disabled>Conectar</button>
+      <div class="copy-row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-back>Volver</button></div>
+    </div>
+
+    <!-- Invitado -->
+    <div class="card" id="card-guest" hidden>
+      <div class="steps"><div class="step on" id="gs1"></div><div class="step" id="gs2"></div></div>
+      <h2>Paso 1 · Pegá la invitación</h2>
+      <p class="sub">Pegá el código que te pasaron y generá tu respuesta.</p>
+
+      <div class="field">
+        <textarea class="code-area" id="offer-in" rows="5" placeholder="Pegá el código de invitación…" spellcheck="false"></textarea>
+        <div class="err" id="guest-err"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-make-answer" disabled>Generar respuesta</button>
+
+      <div id="guest-step2" hidden style="margin-top:20px">
+        <div class="step-label"><span class="step-num">2</span> Devolvele este código y esperá</div>
+        <textarea class="code-area" id="answer-out" readonly rows="5"></textarea>
+        <div class="copy-row">
+          <button class="btn btn-primary btn-sm" data-copy="#answer-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            Copiar respuesta
+          </button>
+          <button class="btn btn-ghost btn-sm" data-share="#answer-out">
+            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
+            Compartir
+          </button>
+        </div>
+        <div class="note" style="margin-top:12px">
+          <div class="spinner dark"></div>
+          <div>Cuando la otra persona lo pegue, el chat se abre solo.</div>
+        </div>
+      </div>
+      <div class="copy-row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-back>Volver</button></div>
+    </div>
+
+    <div class="foot">
+      ZeroHop · WebRTC + DTLS/SRTP · funciona incluso abriendo el archivo con doble clic
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ PANTALLA 2: CHAT ══════════════════════ -->
+<section class="screen" id="chat" hidden>
+  <header class="topbar">
+    <button class="icon-btn" id="btn-back-chat" title="Salir del chat">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>
+    </button>
+    <div class="avatar" id="peer-av">?</div>
+    <div class="peer">
+      <div class="nm" id="peer-name">Contacto</div>
+      <div class="st"><span class="dot" id="conn-dot"></span><span id="conn-txt">conectando…</span></div>
+    </div>
+    <button class="icon-btn" id="btn-menu" title="Menú">
+      <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg>
+    </button>
+
+    <div class="menu" id="menu" hidden>
+      <button id="mi-safety">
+        <svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.2 6 2.2V11c0 4-2.6 7.9-6 9-3.4-1.1-6-5-6-9V6.4l6-2.2Z"/></svg>
+        Verificar seguridad
+      </button>
+      <button id="mi-info">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>
+        Detalles de la conexión
+      </button>
+      <button id="mi-theme">
+        <svg viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12v12Zm0 4a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>
+        Cambiar tema
+      </button>
+      <button id="mi-clear">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 7Zm3-4h6l1 2h4v2H4V5h4l1-2Z"/></svg>
+        Vaciar pantalla
+      </button>
+      <div class="sep"></div>
+      <button class="danger" id="mi-hang">
+        <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.1.3-4.5.7v3c0 .4-.2.7-.5.9-.9.4-1.7 1-2.4 1.7-.2.2-.4.3-.7.3s-.5-.1-.7-.3l-2.5-2.5a1 1 0 0 1 0-1.4C3.9 8.9 7.8 7.3 12 7.3s8.1 1.6 11.3 4.1a1 1 0 0 1 0 1.4l-2.5 2.5c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.7-.7-1.5-1.3-2.4-1.7-.3-.2-.5-.5-.5-.9v-3C15.1 9.3 13.6 9 12 9Z"/></svg>
+        Cortar conexión
+      </button>
+    </div>
+  </header>
+
+  <div class="msgs" id="msgs"></div>
+
+  <div class="emoji" id="emoji" hidden></div>
+
+  <div class="composer">
+    <div class="cbox">
+      <button class="icon-btn" id="btn-emoji" title="Emojis">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 18c-2.3 0-4.3-1.4-5.2-3.4h10.4C16.3 16.6 14.3 18 12 18Z"/></svg>
+      </button>
+      <textarea id="input" rows="1" placeholder="Escribí un mensaje" enterkeyhint="send"></textarea>
+      <button class="icon-btn" id="btn-file" title="Adjuntar archivo">
+        <svg viewBox="0 0 24 24"><path d="M16.5 6.5v9a4.5 4.5 0 1 1-9 0V5.8a3 3 0 1 1 6 0v9.4a1.5 1.5 0 1 1-3 0V6.5H9v8.7a3 3 0 1 0 6 0V5.8a4.5 4.5 0 1 0-9 0v9.7a6 6 0 0 0 12 0v-9h-1.5Z"/></svg>
+      </button>
+      <input type="file" id="file" hidden multiple>
+    </div>
+    <button id="send" disabled title="Enviar">
+      <svg viewBox="0 0 24 24"><path d="M3.4 20.4 21.9 12 3.4 3.6 3.4 10l13.2 2L3.4 14v6.4Z"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-in" id="sheet-in"></div>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden>
+    <img id="lightbox-img" alt="">
+    <button class="icon-btn" id="lightbox-close">
+      <svg viewBox="0 0 24 24"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4Z"/></svg>
+    </button>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   ZeroHop — chat P2P sin servidor.
+   Señalización manual: los SDP se comprimen y se copian a mano.
+   Todo el tráfico va por el DataChannel (DTLS), sin intermediarios.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+/* ───────────── Estado ───────────── */
+const S = {
+  pc: null,
+  dc: null,
+  role: null,            // 'host' | 'guest'
+  me: 'Vos',
+  peer: 'Contacto',
+  localSdp: '',
+  remoteSdp: '',
+  connected: false,
+  useStun: true,
+  msgs: new Map(),       // id -> {el, node}
+  lastDir: null,
+  lastDay: null,
+  peerTyping: false,
+  typingTimer: null,
+  typingSent: false,
+  incoming: null,        // recepción de archivo en curso
+  outQueue: Promise.resolve(),
+  unreadIds: new Set(),
+};
+
+const CHUNK = 16 * 1024;
+const HIGH_WATER = 1 * 1024 * 1024;
+
+/* ───────────── Utilidades ───────────── */
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const esc = s => s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const hhmm = t => new Date(t).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+const dayKey = t => new Date(t).toDateString();
+function humanSize(n){
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+  return (n / 1073741824).toFixed(2) + ' GB';
+}
+function dayLabel(t){
+  const d = new Date(t), hoy = new Date(), ayer = new Date(Date.now() - 864e5);
+  if (d.toDateString() === hoy.toDateString()) return 'HOY';
+  if (d.toDateString() === ayer.toDateString()) return 'AYER';
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+let toastT;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2400);
+}
+
+/* ───────────── Empaquetado de códigos (deflate + base64url) ───────────── */
+const b64u = {
+  enc(bytes){
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  },
+  dec(str){
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    const bin = atob(str), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+};
+
+async function squeeze(bytes, mode){
+  const stream = new Blob([bytes]).stream().pipeThrough(new (mode === 'x' ? CompressionStream : DecompressionStream)('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function pack(kind, sdp){
+  const raw = new TextEncoder().encode(JSON.stringify({ k: kind, s: sdp }));
+  if (self.CompressionStream){
+    try { return 'ZH1' + b64u.enc(await squeeze(raw, 'x')); } catch {}
+  }
+  return 'ZH0' + b64u.enc(raw);
+}
+
+async function unpack(code){
+  const clean = (code || '').trim().replace(/\s+/g, '');
+  if (!clean) throw new Error('El código está vacío.');
+  const tag = clean.slice(0, 3), body = clean.slice(3);
+  if (tag !== 'ZH1' && tag !== 'ZH0') throw new Error('Eso no parece un código de ZeroHop.');
+  let bytes;
+  try { bytes = b64u.dec(body); } catch { throw new Error('El código está incompleto o mal copiado.'); }
+  if (tag === 'ZH1'){
+    if (!self.DecompressionStream) throw new Error('Tu navegador no puede descomprimir este código.');
+    bytes = await squeeze(bytes, 'd');
+  }
+  let obj;
+  try { obj = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new Error('El código está corrupto. Pedí que te lo manden de nuevo.'); }
+  if (!obj || !obj.s || !obj.k) throw new Error('El código no tiene el formato esperado.');
+  return obj;
+}
+
+/* ───────────── WebRTC ───────────── */
+function rtcConfig(){
+  return {
+    iceServers: S.useStun ? [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] : [],
+    iceCandidatePoolSize: 0
+  };
+}
+
+function newPeer(){
+  const pc = new RTCPeerConnection(rtcConfig());
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    if (st === 'connected') markConnected();
+    else if (st === 'disconnected') setStatus('bad', 'conexión inestable…');
+    else if (st === 'failed') linkDown('Se perdió la conexión: no hay una ruta directa disponible entre ambas redes.');
+    else if (st === 'closed') setStatus('bad', 'desconectado');
+  };
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'failed') try { pc.restartIce && pc.restartIce(); } catch {}
+  };
+  return pc;
+}
+
+// Señalización manual: hay que esperar a tener todos los candidatos ICE
+// dentro del SDP, porque no hay canal para enviarlos después (sin trickle).
+function gatherComplete(pc, ms = 4000){
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    let done = false;
+    const finish = () => { if (!done){ done = true; pc.removeEventListener('icegatheringstatechange', chk); res(); } };
+    const chk = () => { if (pc.iceGatheringState === 'complete') finish(); };
+    pc.addEventListener('icegatheringstatechange', chk);
+    // si en `ms` no terminó, seguimos con lo que haya (suele alcanzar)
+    setTimeout(finish, ms);
+  });
+}
+
+function wireChannel(dc){
+  S.dc = dc;
+  dc.binaryType = 'arraybuffer';
+  dc.bufferedAmountLowThreshold = 256 * 1024;
+  dc.onopen = () => { markConnected(); send({ t: 'hi', name: S.me }); };
+  dc.onclose = () => linkDown('La conversación se cerró.');
+  dc.onmessage = onData;
+}
+
+async function startHost(){
+  S.role = 'host';
+  S.pc = newPeer();
+  wireChannel(S.pc.createDataChannel('zerohop', { ordered: true }));
+  const offer = await S.pc.createOffer();
+  await S.pc.setLocalDescription(offer);
+  await gatherComplete(S.pc);
+  S.localSdp = S.pc.localDescription.sdp;
+  return pack('o', S.localSdp);
+}
+
+async function hostAccept(code){
+  const { k, s } = await unpack(code);
+  if (k !== 'a') throw new Error('Ese es un código de invitación, no una respuesta. Pedí el código que genera la otra persona.');
+  S.remoteSdp = s;
+  await S.pc.setRemoteDescription({ type: 'answer', sdp: s });
+}
+
+async function startGuest(code){
+  const { k, s } = await unpack(code);
+  if (k !== 'o') throw new Error('Ese código es una respuesta, no una invitación.');
+  S.role = 'guest';
+  S.remoteSdp = s;
+  S.pc = newPeer();
+  S.pc.ondatachannel = e => wireChannel(e.channel);
+  await S.pc.setRemoteDescription({ type: 'offer', sdp: s });
+  const answer = await S.pc.createAnswer();
+  await S.pc.setLocalDescription(answer);
+  await gatherComplete(S.pc);
+  S.localSdp = S.pc.localDescription.sdp;
+  return pack('a', S.localSdp);
+}
+
+/* ───────────── Protocolo del canal ───────────── */
+function send(obj){
+  if (S.dc && S.dc.readyState === 'open'){ S.dc.send(JSON.stringify(obj)); return true; }
+  return false;
+}
+
+function onData(ev){
+  if (typeof ev.data !== 'string') return onBinary(ev.data);
+  let m; try { m = JSON.parse(ev.data); } catch { return; }
+  switch (m.t){
+    case 'hi':
+      if (m.name){ S.peer = String(m.name).slice(0, 24); paintPeer(); }
+      break;
+    case 'msg':
+      hideTyping();
+      addBubble({ id: m.id, dir: 'in', kind: 'text', text: String(m.text ?? '').slice(0, 8000), ts: m.ts || Date.now() });
+      send({ t: 'ack', id: m.id, s: 'delivered' });
+      if (document.hasFocus() && nearBottom()) send({ t: 'ack', id: m.id, s: 'read' });
+      else S.unreadIds.add(m.id);
+      break;
+    case 'ack':
+      setTick(m.id, m.s);
+      break;
+    case 'typing':
+      m.v ? showTyping() : hideTyping();
+      break;
+    case 'fmeta':
+      hideTyping();
+      S.incoming = { id: m.id, name: String(m.name || 'archivo').slice(0, 120), size: +m.size || 0, mime: m.mime || '', chunks: [], got: 0 };
+      addBubble({ id: m.id, dir: 'in', kind: 'file', name: S.incoming.name, size: S.incoming.size, mime: S.incoming.mime, ts: m.ts || Date.now(), progress: 0 });
+      break;
+    case 'fend':
+      finishIncoming();
+      break;
+    case 'bye':
+      linkDown(`<b>${esc(S.peer)}</b> cerró la conversación.`);
+      break;
+  }
+}
+
+function onBinary(buf){
+  const inc = S.incoming;
+  if (!inc) return;
+  inc.chunks.push(buf);
+  inc.got += buf.byteLength;
+  setProgress(inc.id, inc.size ? inc.got / inc.size : 0);
+}
+
+function finishIncoming(){
+  const inc = S.incoming;
+  if (!inc) return;
+  S.incoming = null;
+  const blob = new Blob(inc.chunks, { type: inc.mime || 'application/octet-stream' });
+  renderFileReady(inc.id, blob, inc);
+}
+
+/* ───────────── Envío de archivos (con control de flujo) ───────────── */
+function drain(){
+  return new Promise(res => {
+    if (!S.dc || S.dc.bufferedAmount < HIGH_WATER) return res();
+    const on = () => { S.dc.removeEventListener('bufferedamountlow', on); res(); };
+    S.dc.addEventListener('bufferedamountlow', on);
+  });
+}
+
+function queueFile(file){
+  // Serializamos los envíos: el canal es ordenado, así que el receptor
+  // sabe que los binarios pertenecen al último 'fmeta' recibido.
+  S.outQueue = S.outQueue.then(() => sendFile(file)).catch(e => console.error(e));
+}
+
+async function sendFile(file){
+  if (!S.dc || S.dc.readyState !== 'open') return toast('No hay conexión activa');
+  const id = uid(), ts = Date.now();
+  send({ t: 'fmeta', id, name: file.name, size: file.size, mime: file.type, ts });
+  addBubble({ id, dir: 'out', kind: 'file', name: file.name, size: file.size, mime: file.type, ts, progress: 0 });
+  let sent = 0;
+  try {
+    while (sent < file.size){
+      await drain();
+      if (!S.dc || S.dc.readyState !== 'open') throw new Error('canal cerrado');
+      const buf = await file.slice(sent, sent + CHUNK).arrayBuffer();
+      S.dc.send(buf);
+      sent += buf.byteLength;
+      setProgress(id, sent / file.size);
+    }
+    send({ t: 'fend', id, ts });
+    renderFileReady(id, file, { name: file.name, size: file.size, mime: file.type });
+    setTick(id, 'sent');
+  } catch (e){
+    setProgress(id, 0);
+    toast('No se pudo enviar ' + file.name);
+  }
+}
+
+/* ───────────── UI del chat ───────────── */
+function nearBottom(){
+  const m = $('#msgs');
+  return m.scrollHeight - m.scrollTop - m.clientHeight < 120;
+}
+function toBottom(force){
+  const m = $('#msgs');
+  if (force || nearBottom()) requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+}
+
+function daySeparator(ts){
+  const k = dayKey(ts);
+  if (S.lastDay === k) return;
+  S.lastDay = k;
+  const d = document.createElement('div');
+  d.className = 'day'; d.textContent = dayLabel(ts);
+  $('#msgs').appendChild(d);
+  S.lastDir = null;
+}
+
+function sysMsg(html){
+  const d = document.createElement('div');
+  d.className = 'sys'; d.innerHTML = html;
+  $('#msgs').appendChild(d);
+  S.lastDir = null;
+  toBottom(true);
+}
+
+const TICKS = {
+  sent:      '<svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+  delivered: '<svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41zm4.24-1.41L11.66 16.17 7.5 12.01l-1.41 1.41L11.66 19l12-12zM.41 13.41 6 19l1.41-1.41L1.83 12z"/></svg>',
+  pending:   '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm.8 3h-1.5v4.4l3.6 2.2.8-1.3-2.9-1.7V8Z"/></svg>'
+};
+
+function addBubble(m){
+  const box = $('#msgs');
+  daySeparator(m.ts);
+  const tail = S.lastDir !== m.dir;
+  S.lastDir = m.dir;
+
+  const row = document.createElement('div');
+  row.className = 'row ' + m.dir + (tail ? ' tail' : '');
+  const b = document.createElement('div');
+  b.className = 'bubble';
+
+  const meta = `<span class="meta" data-meta>${hhmm(m.ts)}${m.dir === 'out' ? TICKS.pending : ''}</span>`;
+
+  if (m.kind === 'text'){
+    b.className = 'bubble txt';
+    b.innerHTML = meta + linkify(m.text);
+  } else {
+    // ojo: sin saltos de línea sueltos, el HTML va dentro de la burbuja
+    b.innerHTML =
+      '<div class="att">' +
+        '<div class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg></div>' +
+        '<div class="tx"><div class="nm">' + esc(m.name) + '</div>' +
+        '<div class="sz">' + humanSize(m.size) + '</div></div>' +
+      '</div>' +
+      '<div class="bar"><i data-bar></i></div>' + meta;
+  }
+
+  row.appendChild(b);
+  box.appendChild(row);
+  S.msgs.set(m.id, { row, bubble: b, data: m });
+  toBottom(m.dir === 'out');
+  return b;
+}
+
+function linkify(text){
+  return esc(text).replace(/\bhttps?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+
+function setTick(id, state){
+  const rec = S.msgs.get(id);
+  if (!rec) return;
+  const meta = rec.bubble.querySelector('[data-meta]');
+  if (!meta) return;
+  const svg = state === 'read' || state === 'delivered' ? TICKS.delivered : TICKS.sent;
+  meta.innerHTML = hhmm(rec.data.ts) + svg;
+  meta.classList.toggle('read', state === 'read');
+}
+
+function setProgress(id, p){
+  const rec = S.msgs.get(id);
+  if (!rec) return;
+  const bar = rec.bubble.querySelector('[data-bar]');
+  if (bar) bar.style.width = Math.min(100, Math.round(p * 100)) + '%';
+}
+
+function renderFileReady(id, blob, info){
+  const rec = S.msgs.get(id);
+  if (!rec) return;
+  setProgress(id, 1);
+  const bar = rec.bubble.querySelector('.bar');
+  if (bar) bar.remove();
+  const url = URL.createObjectURL(blob);
+
+  if ((info.mime || '').startsWith('image/')){
+    const att = rec.bubble.querySelector('.att');
+    rec.bubble.classList.add('pic');
+    const img = document.createElement('img');
+    img.className = 'photo'; img.src = url; img.alt = info.name;
+    img.onload = () => toBottom();
+    img.onclick = () => { $('#lightbox-img').src = url; $('#lightbox').hidden = false; };
+    rec.bubble.insertBefore(img, att);
+    att.remove();
+  } else {
+    const a = document.createElement('a');
+    a.className = 'dl'; a.href = url; a.download = info.name; a.textContent = 'Guardar';
+    rec.bubble.querySelector('.att').appendChild(a);
+  }
+  toBottom();
+}
+
+let typingRow = null;
+function showTyping(){
+  if (typingRow) return;
+  typingRow = document.createElement('div');
+  typingRow.className = 'row in';
+  typingRow.innerHTML = '<div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>';
+  $('#msgs').appendChild(typingRow);
+  toBottom();
+}
+function hideTyping(){ if (typingRow){ typingRow.remove(); typingRow = null; S.lastDir = null; } }
+
+function setStatus(kind, txt){
+  const dot = $('#conn-dot');
+  dot.className = 'dot' + (kind === 'ok' ? '' : ' ' + kind);
+  $('#conn-txt').textContent = txt;
+}
+
+function paintPeer(){
+  $('#peer-name').textContent = S.peer;
+  $('#peer-av').textContent = (S.peer.trim()[0] || '?').toUpperCase();
+}
+
+// El enlace se cayó (cierre remoto, ICE caído o 'bye' del otro lado).
+function linkDown(reason){
+  if (!S.connected && !S.dc) return;
+  S.connected = false;
+  hideTyping();
+  setStatus('bad', 'desconectado');
+  $('#send').disabled = true;
+  $('#btn-file').disabled = true;
+  $('#input').disabled = true;
+  $('#input').placeholder = 'Conexión terminada';
+  if (reason) sysMsg(reason + ' Volvé al inicio para empezar otra.');
+  try { S.dc && S.dc.close(); } catch {}
+}
+
+function markConnected(){
+  if (S.connected) return;
+  if (!S.dc || S.dc.readyState !== 'open') return;
+  S.connected = true;
+  showScreen('chat');
+  setStatus('ok', 'en línea · cifrado punta a punta');
+  $('#send').disabled = false;
+  $('#btn-file').disabled = false;
+  $('#input').disabled = false;
+  $('#input').placeholder = 'Escribí un mensaje';
+  sysMsg('Conexión directa establecida. Los mensajes viajan cifrados entre los dos navegadores, <b>sin pasar por ningún servidor</b>.');
+  $('#input').focus();
+}
+
+/* ───────────── Envío de texto ───────────── */
+function sendText(){
+  const ta = $('#input');
+  const text = ta.value.replace(/\s+$/, '');
+  if (!text) return;
+  if (!S.dc || S.dc.readyState !== 'open') return toast('No hay conexión activa');
+  const id = uid(), ts = Date.now();
+  send({ t: 'msg', id, text, ts });
+  addBubble({ id, dir: 'out', kind: 'text', text, ts });
+  setTick(id, 'sent');
+  ta.value = ''; autoGrow(ta);
+  if (S.typingSent){ send({ t: 'typing', v: false }); S.typingSent = false; }
+  ta.focus();
+}
+
+function autoGrow(ta){
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
+}
+
+function pingTyping(){
+  if (!S.dc || S.dc.readyState !== 'open') return;
+  if (!S.typingSent){ send({ t: 'typing', v: true }); S.typingSent = true; }
+  clearTimeout(S.typingTimer);
+  S.typingTimer = setTimeout(() => { send({ t: 'typing', v: false }); S.typingSent = false; }, 2200);
+}
+
+/* ───────────── Código de seguridad (huellas DTLS) ───────────── */
+function fingerprint(sdp){
+  const m = (sdp || '').match(/a=fingerprint:\S+\s+([0-9A-Fa-f:]+)/);
+  return m ? m[1].toUpperCase() : '';
+}
+async function safetyCode(){
+  const a = fingerprint(S.localSdp), b = fingerprint(S.remoteSdp);
+  if (!a || !b) return null;
+  try {
+    const data = new TextEncoder().encode([a, b].sort().join('|'));
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    const hex = [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return hex.slice(0, 20).match(/.{1,4}/g).join(' ');
+  } catch { return null; }
+}
+
+/* ───────────── Hojas modales ───────────── */
+function sheet(html){
+  $('#sheet-in').innerHTML = html;
+  $('#sheet').hidden = false;
+}
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').hidden = true; });
+
+async function showSafety(){
+  const code = await safetyCode();
+  sheet(`
+    <h3>Código de seguridad</h3>
+    <p>Se calcula con las huellas de los certificados DTLS de ambos lados. Si a los dos les aparece el mismo código, nadie se metió en el medio.</p>
+    <div class="safety">${code ? esc(code) : 'No disponible'}</div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('sheet').hidden=true">Listo</button>`);
+}
+
+async function showInfo(){
+  let local = '—', remote = '—', proto = '—';
+  try {
+    const stats = await S.pc.getStats();
+    let pair = null, cands = new Map();
+    stats.forEach(r => {
+      if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands.set(r.id, r);
+      if (r.type === 'candidate-pair' && (r.state === 'succeeded' || r.nominated)) pair = r;
+    });
+    if (pair){
+      const l = cands.get(pair.localCandidateId), r = cands.get(pair.remoteCandidateId);
+      const t = c => c ? ({ host: 'red local', srflx: 'IP pública (STUN)', prflx: 'reflexiva', relay: 'relay TURN' }[c.candidateType] || c.candidateType) : '—';
+      local = t(l); remote = t(r);
+      proto = (l && l.protocol ? l.protocol.toUpperCase() : 'UDP');
+    }
+  } catch {}
+  sheet(`
+    <h3>Detalles de la conexión</h3>
+    <p>Ruta que están usando los datos en este momento.</p>
+    <div class="kv"><span>Estado</span><span>${esc(S.pc ? S.pc.connectionState : '—')}</span></div>
+    <div class="kv"><span>Rol</span><span>${S.role === 'host' ? 'iniciaste el chat' : 'te uniste'}</span></div>
+    <div class="kv"><span>Tu candidato</span><span>${esc(local)}</span></div>
+    <div class="kv"><span>Candidato remoto</span><span>${esc(remote)}</span></div>
+    <div class="kv"><span>Transporte</span><span>${esc(proto)} · DTLS</span></div>
+    <div class="kv"><span>Servidor de mensajes</span><span>ninguno</span></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('sheet').hidden=true">Cerrar</button>`);
+}
+
+/* ───────────── Navegación entre pantallas ───────────── */
+function showScreen(id){
+  ['setup', 'chat'].forEach(s => $('#' + s).hidden = (s !== id));
+}
+
+function resetAll(){
+  try { send({ t: 'bye' }); } catch {}
+  try { S.dc && S.dc.close(); } catch {}
+  try { S.pc && S.pc.close(); } catch {}
+  Object.assign(S, {
+    pc: null, dc: null, role: null, connected: false, localSdp: '', remoteSdp: '',
+    lastDir: null, lastDay: null, incoming: null, typingSent: false, outQueue: Promise.resolve()
+  });
+  S.msgs.clear();
+  $('#msgs').innerHTML = '';
+  hideTyping();
+  $('#offer-out').value = ''; $('#answer-in').value = '';
+  $('#offer-in').value = ''; $('#answer-out').value = '';
+  $('#offer-out').hidden = true; $('#offer-actions').hidden = true; $('#host-wait').style.display = '';
+  $('#guest-step2').hidden = true;
+  $('#btn-connect-host').disabled = true;
+  $('#btn-make-answer').disabled = true;
+  $('#hs2').classList.remove('on'); $('#gs2').classList.remove('on');
+  hideErr('#host-err'); hideErr('#guest-err');
+  card('role');
+  showScreen('setup');
+}
+
+function card(which){
+  $('#card-role').hidden  = which !== 'role';
+  $('#card-host').hidden  = which !== 'host';
+  $('#card-guest').hidden = which !== 'guest';
+}
+
+function showErr(sel, msg){ const e = $(sel); e.textContent = msg; e.classList.add('show'); }
+function hideErr(sel){ $(sel).classList.remove('show'); }
+
+/* ───────────── Eventos: setup ───────────── */
+$('#myname').value = localStorage.getItem('zh:name') || '';
+$('#myname').addEventListener('input', e => {
+  S.me = e.target.value.trim() || 'Anónimo';
+  localStorage.setItem('zh:name', e.target.value.trim());
+});
+S.me = ($('#myname').value.trim() || 'Anónimo');
+
+const tgl = $('#tgl-stun');
+function toggleStun(){
+  S.useStun = !S.useStun;
+  tgl.setAttribute('aria-checked', String(S.useStun));
+}
+tgl.addEventListener('click', toggleStun);
+tgl.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleStun(); } });
+
+$('#btn-host').addEventListener('click', async () => {
+  card('host');
+  try {
+    const code = await startHost();
+    $('#host-wait').style.display = 'none';
+    const out = $('#offer-out');
+    out.hidden = false; out.value = code;
+    $('#offer-actions').hidden = false;
+    $('#hs2').classList.add('on');
+  } catch (e){
+    $('#host-wait').style.display = 'none';
+    showErr('#host-err', 'No se pudo crear la invitación: ' + e.message);
+  }
+});
+
+$('#btn-guest').addEventListener('click', () => { card('guest'); $('#offer-in').focus(); });
+
+$$('[data-back]').forEach(b => b.addEventListener('click', () => resetAll()));
+
+$('#answer-in').addEventListener('input', e => {
+  $('#btn-connect-host').disabled = e.target.value.trim().length < 10;
+  hideErr('#host-err');
+});
+
+$('#btn-connect-host').addEventListener('click', async () => {
+  const btn = $('#btn-connect-host');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Conectando…';
+  hideErr('#host-err');
+  try {
+    await hostAccept($('#answer-in').value);
+    setTimeout(() => {
+      if (!S.connected){
+        btn.disabled = false; btn.textContent = 'Conectar';
+        showErr('#host-err', 'No se pudo establecer la conexión directa. Puede que alguna de las dos redes bloquee WebRTC (algunas VPN o redes corporativas). Probá con STUN activado o desde otra red.');
+      }
+    }, 15000);
+  } catch (e){
+    btn.disabled = false; btn.textContent = 'Conectar';
+    showErr('#host-err', e.message);
+  }
+});
+
+$('#offer-in').addEventListener('input', e => {
+  $('#btn-make-answer').disabled = e.target.value.trim().length < 10;
+  hideErr('#guest-err');
+});
+
+$('#btn-make-answer').addEventListener('click', async () => {
+  const btn = $('#btn-make-answer');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generando…';
+  hideErr('#guest-err');
+  try {
+    const code = await startGuest($('#offer-in').value);
+    $('#answer-out').value = code;
+    $('#guest-step2').hidden = false;
+    $('#gs2').classList.add('on');
+    btn.innerHTML = 'Respuesta generada';
+    $('#answer-out').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e){
+    btn.disabled = false; btn.textContent = 'Generar respuesta';
+    showErr('#guest-err', e.message);
+  }
+});
+
+/* Copiar / compartir */
+async function copyText(txt){
+  try {
+    await navigator.clipboard.writeText(txt);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+    return ok;
+  }
+}
+$$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+  const txt = $(b.dataset.copy).value;
+  toast(await copyText(txt) ? 'Código copiado' : 'Copialo a mano: seleccioná el texto');
+}));
+$$('[data-share]').forEach(b => b.addEventListener('click', async () => {
+  const txt = $(b.dataset.share).value;
+  if (navigator.share){
+    try { await navigator.share({ title: 'ZeroHop', text: txt }); return; } catch {}
+  }
+  toast(await copyText(txt) ? 'Copiado al portapapeles' : 'No se pudo compartir');
+}));
+
+/* ───────────── Eventos: chat ───────────── */
+const input = $('#input');
+input.addEventListener('input', () => { autoGrow(input); pingTyping(); });
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendText(); }
+});
+$('#send').addEventListener('click', sendText);
+
+$('#btn-file').addEventListener('click', () => $('#file').click());
+$('#file').addEventListener('change', e => {
+  [...e.target.files].forEach(queueFile);
+  e.target.value = '';
+});
+
+/* Drag & drop */
+const chatEl = $('#chat');
+['dragover', 'drop'].forEach(ev => chatEl.addEventListener(ev, e => {
+  e.preventDefault();
+  if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files.length) [...e.dataTransfer.files].forEach(queueFile);
+}));
+
+/* Pegar imágenes */
+input.addEventListener('paste', e => {
+  const items = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file');
+  if (items.length){
+    e.preventDefault();
+    items.forEach(i => { const f = i.getAsFile(); if (f) queueFile(f); });
+  }
+});
+
+/* Emojis */
+const EMOJIS = '😀 😂 🥹 😍 😘 😎 🤔 😴 🙃 😭 😡 👍 👎 🙌 👏 🙏 💪 🔥 ✨ 🎉 ❤️ 💔 ⭐ ✅ ❌ ⚡ 🍺 ☕ 🍕 🎁 🚀 🏠 🐶 🐱 🌚 🌈 💬 📎 📷 🔒'.split(' ');
+const emojiBox = $('#emoji');
+EMOJIS.forEach(e => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = e;
+  b.addEventListener('click', () => {
+    input.value += e; autoGrow(input); input.focus(); pingTyping();
+  });
+  emojiBox.appendChild(b);
+});
+$('#btn-emoji').addEventListener('click', e => { e.stopPropagation(); emojiBox.hidden = !emojiBox.hidden; });
+document.addEventListener('click', e => {
+  if (!emojiBox.hidden && !emojiBox.contains(e.target) && e.target.closest('#btn-emoji') === null) emojiBox.hidden = true;
+});
+
+/* Menú */
+const menu = $('#menu');
+$('#btn-menu').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+document.addEventListener('click', () => { if (!menu.hidden) menu.hidden = true; });
+menu.addEventListener('click', e => e.stopPropagation());
+
+$('#mi-safety').addEventListener('click', () => { menu.hidden = true; showSafety(); });
+$('#mi-info').addEventListener('click',   () => { menu.hidden = true; showInfo(); });
+$('#mi-clear').addEventListener('click',  () => {
+  menu.hidden = true;
+  $('#msgs').innerHTML = ''; S.msgs.clear(); S.lastDay = null; S.lastDir = null; hideTyping();
+  sysMsg('Pantalla vaciada. (Los mensajes nunca se guardaron en ningún lado.)');
+});
+$('#mi-hang').addEventListener('click', () => {
+  menu.hidden = true;
+  if (confirm('¿Cortar la conexión y volver al inicio?')) resetAll();
+});
+$('#btn-back-chat').addEventListener('click', () => {
+  if (confirm('¿Salir del chat? Se corta la conexión y se pierden los mensajes.')) resetAll();
+});
+
+/* Tema */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('zh:theme', t);
+}
+applyTheme(localStorage.getItem('zh:theme') ||
+  (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+$('#mi-theme').addEventListener('click', () => {
+  menu.hidden = true;
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* Lightbox */
+$('#lightbox-close').addEventListener('click', () => $('#lightbox').hidden = true);
+$('#lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') $('#lightbox').hidden = true; });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ $('#lightbox').hidden = true; $('#sheet').hidden = true; menu.hidden = true; emojiBox.hidden = true; }
+});
+
+/* Acuses de lectura al volver a la ventana / bajar el scroll */
+function flushRead(){
+  if (!S.unreadIds.size || !document.hasFocus() || !nearBottom()) return;
+  S.unreadIds.forEach(id => send({ t: 'ack', id, s: 'read' }));
+  S.unreadIds.clear();
+}
+window.addEventListener('focus', flushRead);
+$('#msgs').addEventListener('scroll', flushRead);
+
+/* Aviso al cerrar con chat abierto */
+window.addEventListener('beforeunload', e => {
+  if (S.connected){ try { send({ t: 'bye' }); } catch {} e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
