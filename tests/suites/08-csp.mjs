@@ -14,6 +14,7 @@ export default {
     const B = await newUser(env, 'Luciana');
     t.ok(await A.evaluate(() => typeof convs !== 'undefined'),
       'el script de la app corre igual (el hash lo habilita)');
+    t.ok((await cspViolations(A)).length === 0, 'arrancar la app no viola el CSP');
 
     // ── lo que el CSP tiene que impedir ──
     const inyectado = await A.evaluate(() => new Promise(res => {
@@ -44,11 +45,14 @@ export default {
     }));
     t.ok(externo === 'bloqueado', 'no se puede cargar un script externo');
 
-    // Todo lo de arriba lo provocamos a propósito, así que no cuenta como error
-    // de la app: el bloqueo por CSP y, en file://, el fallo del script externo.
-    const esperado = /Refused to (execute|load)|ERR_FILE_NOT_FOUND|example\.com/i;
+    // Todo lo de arriba lo provocamos a propósito. Limpiamos el rastro que dejó
+    // —la consola redacta distinto según la versión de Chromium, así que
+    // filtramos por tema y no por texto exacto— y seguimos con la lista de
+    // violaciones en cero: si la app viola algo de acá en adelante, se ve.
+    const provocado = /Content Security Policy|net::ERR|example\.com/i;
     for (let i = env.jsErrors.length - 1; i >= 0; i--)
-      if (esperado.test(env.jsErrors[i])) env.jsErrors.splice(i, 1);
+      if (provocado.test(env.jsErrors[i])) env.jsErrors.splice(i, 1);
+    for (const page of [A, B]) await page.evaluate(() => { window.__csp.length = 0; });
 
     // ── y lo que NO tiene que romper ──
     await connectByPaste(A, B);
@@ -65,9 +69,8 @@ export default {
 
     for (const [quien, page] of [['A', A], ['B', B]]){
       const v = await cspViolations(page);
-      const propias = v.filter(x => !x.includes('example.com') && !x.includes('script-src'));
-      t.ok(propias.length === 0, propias.length
-        ? `${quien} tuvo violaciones de CSP propias: ${propias.join(' | ')}`
+      t.ok(v.length === 0, v.length
+        ? `${quien} violó el CSP usando la app: ${v.join(' | ')}`
         : `${quien} usa la app sin violar el CSP en ningún momento`);
     }
 
