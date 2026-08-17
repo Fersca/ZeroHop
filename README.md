@@ -6,8 +6,8 @@ estático o mandar el archivo por mail.
 
 ## Cómo se usa
 
-1. **Persona A** abre la página, pone su nombre y toca **Crear invitación**.
-   Sale un **link** para compartir.
+1. **Persona A** abre la página y toca el botón rojo de abajo a la derecha.
+   Sale un **link** para compartir. (El nombre se pone una vez en *Ajustes*.)
 2. A le manda el link a **Persona B** por donde quiera: WhatsApp, mail, Signal, un papel.
    ZeroHop no lo envía a ningún lado.
 3. **B abre el link**: la app ya lo reconoce, le pide el nombre y genera el
@@ -20,8 +20,9 @@ Con el botón **Ver código suelto** se cambia el link por el código pelado (`Z
 si la otra persona abre el archivo HTML local en vez de la página. Los dos campos aceptan
 tanto el link completo como el código.
 
-Los códigos son el SDP de WebRTC comprimido con `deflate-raw` y codificado en base64url
-(~600 caracteres). Solo sirven para esa conexión: al recargar la página dejan de valer.
+Los códigos son el SDP de WebRTC más tu nombre y tu clave pública, comprimidos con
+`deflate-raw` y codificados en base64url (~830 caracteres). Solo sirven para esa conexión:
+al recargar la página dejan de valer.
 
 ### Publicado como página web
 
@@ -38,8 +39,43 @@ Al abrir un link, ZeroHop limpia el `#` de la barra de direcciones para que el c
 quede a la vista ni en el historial de esa pestaña. Igual, el link queda en el chat por
 donde lo mandaste: tratalo como lo que es, la llave de esa conversación.
 
+## Varias conversaciones a la vez
+
+La pantalla de inicio es una lista tipo WhatsApp: cada contacto con su avatar, el último
+mensaje, la hora, el punto verde si está conectado y el globito de no leídos. Cada
+conversación tiene su propia conexión WebRTC, así que podés entrar a una, salir con la
+flecha, hablar con otra y volver: **las conexiones siguen vivas en segundo plano**. Los
+mensajes que llegan mientras estás en otro chat suman no leídos y avisan con un toque.
+
+## Volver a hablar con alguien más adelante
+
+Acá conviene ser claro sobre qué se puede y qué no.
+
+**Lo que no se puede sin servidor:** WebRTC no tiene direcciones estables. Cada conexión
+necesita un SDP nuevo con candidatos ICE frescos, y un navegador no puede quedar
+escuchando a que lo llamen. Aunque guardáramos la IP y el puerto de tu contacto, mañana no
+sirven. **Siempre hace falta intercambiar un link nuevo, con los dos conectados a la vez.**
+
+**Lo que sí se guarda: la identidad.** Al abrir ZeroHop por primera vez se genera un par de
+claves ECDSA P-256 que vive solo en este navegador. Tu **ID** es la huella de tu clave
+pública, y viaja en cada invitación. Con eso:
+
+- Tus contactos quedan en la lista aunque cierres todo, con nombre e ID.
+- Reconectar es: tocar el contacto → **Reinvitar** → mandarle el link → listo. La
+  conversación se reusa, no se duplica.
+- Al conectar, cada lado firma un desafío del otro **atado al código de seguridad de esa
+  sesión DTLS**. Si la firma verifica, aparece *«es el mismo de siempre»* y el sello
+  VERIFICADO: no hace falta comparar el código a mano nunca más.
+- Si reinvitás a alguien y responde **otra identidad**, ZeroHop no pisa el contacto
+  guardado: abre una conversación aparte y avisa en rojo. Puede ser que haya reinstalado y
+  perdido su clave… o que no sea quien pensás.
+
+El ID identifica, no permite llamar. Es la diferencia entre «sé que sos vos» y «puedo
+encontrarte».
+
 ## Qué tiene
 
+- Varias conversaciones simultáneas, cada una con su propia conexión.
 - Mensajes de texto, con indicador de "escribiendo…" y tildes de enviado / entregado / leído.
 - Envío de archivos e imágenes (troceado en bloques de 16 KB con control de flujo:
   8 MB tardan ~4 s en LAN). Las imágenes se ven en la burbuja, el resto se descarga.
@@ -53,16 +89,19 @@ donde lo mandaste: tratalo como lo que es, la llave de esa conversación.
 
 - **Ningún mensaje pasa por un servidor.** El canal es un `RTCDataChannel` cifrado con DTLS
   directamente entre los dos navegadores.
-- **No hay historial.** Nada se guarda: al cerrar la pestaña la conversación desaparece.
-  Lo único que queda en `localStorage` es tu nombre y la preferencia de tema.
+- **No hay historial de mensajes.** Al cerrar la pestaña, las conversaciones desaparecen.
+  En `localStorage` quedan solo tu identidad (el par de claves), tu nombre, la agenda de
+  contactos (nombre + clave pública) y las preferencias. Nunca el contenido de los chats.
+  Todo eso se borra con un botón en Ajustes.
 - **No hay cuentas, ni registro, ni analytics, ni pedidos de red externos.**
 - Por defecto se usan servidores **STUN** públicos de Google, que sirven únicamente para
   descubrir la IP pública y atravesar el NAT: no ven ni transportan el contenido. Se pueden
-  apagar con un switch en la pantalla inicial (útil si los dos están en la misma red local).
+  apagar con un switch en *Ajustes* (útil si los dos están en la misma red local).
+
 ## Si estás detrás de una VPN
 
 Hay dos problemas distintos, con soluciones distintas. Ambos se atacan desde
-**Opciones avanzadas** en la pantalla inicial.
+**Ajustes → Conexión → Opciones avanzadas**.
 
 ### 1. Los dos están en la misma VPN (Tailscale, WireGuard, ZeroTier, VPN de la empresa)
 
@@ -72,7 +111,7 @@ mDNS `xxxxx.local`**, que solo se resuelve por multicast dentro de la misma LAN.
 VPN no transporta ese multicast, así que el otro lado no puede resolver el nombre y ICE
 no encuentra ruta, aunque los dos se hagan ping sin problema.
 
-Solución: escribí tu IP del túnel en **Opciones avanzadas → Tu IP dentro de la VPN**
+Solución: escribí tu IP del túnel en **Ajustes → Opciones avanzadas → Tu IP dentro de la VPN**
 (la sacás con `tailscale ip -4`, `ip addr`, `ifconfig` o `ipconfig`). ZeroHop agrega esa
 dirección como candidato extra al código que compartís, y la conexión va **directa por el
 túnel**: sin STUN, sin relay, sin nada en el medio. Los dos tienen que cargar la suya.

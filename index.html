@@ -68,6 +68,8 @@
 }
 
 *{box-sizing:border-box}
+/* varias clases usan display:flex/grid y le ganarían al atributo hidden */
+[hidden]{display:none !important}
 html,body{height:100%}
 body{
   margin:0;
@@ -97,38 +99,107 @@ button{cursor:pointer;border:0;background:none}
   .app{height:calc(100dvh - 44px);border-radius:14px;box-shadow:var(--shadow-lg)}
 }
 
-/* ─────────────────────────────  PANTALLAS  ───────────────────────────── */
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--panel);
-  transition:transform .32s cubic-bezier(.22,.7,.24,1),opacity .22s ease}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--panel)}
 .screen[hidden]{display:none}
-.screen.enter{transform:translateX(24px);opacity:0}
 
-/* ── Onboarding ── */
-#setup{overflow-y:auto;background:var(--app-bg)}
-.hero{
-  background:var(--header);color:#fff;padding:34px 22px 54px;text-align:center;position:relative;overflow:hidden;
+/* ─────────────────────────────  BARRA SUPERIOR  ───────────────────────────── */
+.topbar{
+  background:var(--header);color:#fff;display:flex;align-items:center;gap:11px;
+  padding:calc(9px + env(safe-area-inset-top,0px)) 12px 9px;flex:none;
+  box-shadow:0 1px 6px rgba(0,0,0,.18);z-index:3;position:relative
 }
-.hero::after{
-  content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
-  background:var(--app-bg);
-  border-radius:100% 100% 0 0 / 100% 100% 0 0;
+.topbar h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.3px;flex:1}
+.avatar{
+  width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.2);font-weight:700;font-size:16px;color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)
 }
-.hero-mark{
-  width:66px;height:66px;border-radius:20px;margin:0 auto 12px;
-  background:rgba(255,255,255,.16);display:grid;place-items:center;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);
+.peer{flex:1;min-width:0}
+.peer .nm{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:6px}
+.peer .st{font-size:12px;opacity:.88;display:flex;align-items:center;gap:5px;height:15px}
+.dot{width:7px;height:7px;border-radius:50%;background:#7ee39b;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.dot.off{background:#ffd280}
+.dot.bad{background:#ff8f8f}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;
+  transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.15)}
+.icon-btn svg{width:21px;height:21px;fill:currentColor}
+.vchip{
+  font-size:10px;font-weight:700;background:rgba(255,255,255,.22);padding:2px 6px;border-radius:99px;
+  letter-spacing:.3px;flex:none
 }
-.hero-mark svg{width:36px;height:36px;fill:#fff}
-.hero h1{margin:0;font-size:26px;letter-spacing:-.4px;font-weight:700}
-.hero p{margin:7px auto 0;max-width:460px;font-size:14px;opacity:.9;line-height:1.5}
-.badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-.badge{font-size:11px;background:rgba(255,255,255,.18);padding:5px 10px;border-radius:99px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
 
-.wrap{width:100%;max-width:560px;margin:0 auto;padding:0 18px 40px}
+.menu{
+  position:absolute;top:calc(100% - 4px);right:8px;background:var(--panel);border-radius:12px;
+  box-shadow:var(--shadow-lg);border:1px solid var(--line);min-width:214px;padding:6px;z-index:20;
+  transform-origin:top right;animation:pop .13s ease
+}
+@keyframes pop{from{opacity:0;transform:scale(.94)}}
+.menu[hidden]{display:none}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border-radius:9px;
+  font-size:14px;color:var(--text);text-align:left}
+.menu button:hover{background:var(--panel-2)}
+.menu button svg{width:17px;height:17px;fill:var(--text-soft);flex:none}
+.menu .sep{height:1px;background:var(--line);margin:5px 2px}
+.menu button.danger{color:var(--danger)}
+.menu button.danger svg{fill:var(--danger)}
+
+/* ─────────────────────────────  HOME: LISTA  ───────────────────────────── */
+#home{background:var(--panel)}
+.searchbar{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.searchbar input{
+  width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:99px;
+  padding:9px 14px;outline:none;font-size:14px
+}
+.searchbar input:focus{border-color:var(--accent)}
+.list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.conv{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;
+  border-bottom:1px solid var(--line);transition:background .12s;width:100%;text-align:left
+}
+.conv:hover{background:var(--panel-2)}
+.conv .av{
+  width:50px;height:50px;border-radius:50%;flex:none;display:grid;place-items:center;
+  color:#fff;font-weight:700;font-size:19px;position:relative
+}
+.conv .av i{
+  position:absolute;right:0;bottom:1px;width:13px;height:13px;border-radius:50%;
+  border:2.5px solid var(--panel);background:var(--text-faint)
+}
+.conv.on .av i{background:#22c55e}
+.conv .mid{flex:1;min-width:0}
+.conv .nm{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:6px}
+.conv .nm svg{width:13px;height:13px;fill:var(--ok);flex:none}
+.conv .pv{font-size:13.5px;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv .pv b{color:var(--accent);font-weight:600}
+.conv .right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.conv .rt{font-size:11.5px;color:var(--text-faint)}
+.conv.unread .rt{color:var(--accent)}
+.badge-n{
+  background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;min-width:20px;height:20px;
+  border-radius:99px;display:grid;place-items:center;padding:0 6px
+}
+.empty{padding:64px 30px;text-align:center;color:var(--text-soft)}
+.empty svg{width:64px;height:64px;fill:var(--line);margin-bottom:14px}
+.empty h3{margin:0 0 6px;font-size:17px;color:var(--text)}
+.empty p{margin:0;font-size:13.5px;line-height:1.6}
+
+.fab{
+  position:absolute;right:18px;bottom:calc(20px + var(--safe-b));width:58px;height:58px;border-radius:50%;
+  background:var(--header-solid);background-image:var(--header);display:grid;place-items:center;
+  box-shadow:0 8px 24px rgba(183,28,28,.42);z-index:5;transition:transform .12s
+}
+.fab:active{transform:scale(.93)}
+.fab svg{width:26px;height:26px;fill:#fff}
+
+/* ─────────────────────────────  TARJETAS / FORMULARIOS  ───────────────────────────── */
+.scroll{flex:1;overflow-y:auto;background:var(--app-bg)}
+.wrap{width:100%;max-width:560px;margin:0 auto;padding:16px 16px 40px}
 .card{
-  background:var(--panel);border-radius:18px;box-shadow:var(--shadow-lg);
-  padding:20px;margin-top:-26px;position:relative;z-index:1;border:1px solid var(--line);
+  background:var(--panel);border-radius:16px;box-shadow:var(--shadow);
+  padding:18px;border:1px solid var(--line)
 }
 .card + .card{margin-top:14px}
 .card h2{margin:0 0 4px;font-size:16px;letter-spacing:-.2px}
@@ -143,12 +214,12 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 }
 .input:focus,.code-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(211,47,47,.14)}
 .code-area{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
-  line-height:1.45;resize:vertical;min-height:96px;word-break:break-all}
+  line-height:1.45;resize:vertical;min-height:86px;word-break:break-all}
 
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:9px;
   padding:13px 18px;border-radius:12px;font-weight:600;font-size:15px;
-  transition:transform .12s ease,filter .15s ease,background .15s ease;width:100%
+  transition:transform .12s ease,filter .15s ease;width:100%
 }
 .btn:active{transform:scale(.985)}
 .btn[disabled]{opacity:.5;pointer-events:none}
@@ -167,8 +238,6 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;
   display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
 
-.codebox{position:relative}
-.codebox .code-area{padding-right:14px;background:var(--panel-2)}
 .copy-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .hint{font-size:12px;color:var(--text-faint);line-height:1.5;margin-top:8px}
 .hint b{color:var(--text-soft)}
@@ -206,46 +275,15 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 
 .err{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;line-height:1.45}
 .err.show{display:block}
-
 .foot{text-align:center;font-size:11.5px;color:var(--text-faint);margin-top:18px;line-height:1.6}
 
+.idbox{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;letter-spacing:1px;
+  background:var(--panel-2);border:1px dashed var(--line);border-radius:12px;padding:13px;
+  color:var(--accent);font-weight:600;text-align:center;word-break:break-all
+}
+
 /* ─────────────────────────────  CHAT  ───────────────────────────── */
-.topbar{
-  background:var(--header);color:#fff;display:flex;align-items:center;gap:11px;
-  padding:calc(9px + env(safe-area-inset-top,0px)) 12px 9px;flex:none;
-  box-shadow:0 1px 6px rgba(0,0,0,.18);z-index:3;position:relative
-}
-.avatar{
-  width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;
-  background:rgba(255,255,255,.2);font-weight:700;font-size:16px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)
-}
-.peer{flex:1;min-width:0}
-.peer .nm{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.peer .st{font-size:12px;opacity:.88;display:flex;align-items:center;gap:5px;height:15px}
-.dot{width:7px;height:7px;border-radius:50%;background:#7ee39b;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
-.dot.off{background:#ffd280}
-.dot.bad{background:#ff8f8f}
-.icon-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;
-  transition:background .15s}
-.icon-btn:hover{background:rgba(255,255,255,.15)}
-.icon-btn svg{width:21px;height:21px;fill:currentColor}
-
-.menu{
-  position:absolute;top:calc(100% - 4px);right:8px;background:var(--panel);border-radius:12px;
-  box-shadow:var(--shadow-lg);border:1px solid var(--line);min-width:210px;padding:6px;z-index:20;
-  transform-origin:top right;animation:pop .13s ease
-}
-@keyframes pop{from{opacity:0;transform:scale(.94)}}
-.menu[hidden]{display:none}
-.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border-radius:9px;
-  font-size:14px;color:var(--text);text-align:left}
-.menu button:hover{background:var(--panel-2)}
-.menu button svg{width:17px;height:17px;fill:var(--text-soft)}
-.menu .sep{height:1px;background:var(--line);margin:5px 2px}
-.menu button.danger{color:var(--danger)}
-.menu button.danger svg{fill:var(--danger)}
-
 .msgs{
   flex:1;overflow-y:auto;padding:14px 12px 6px;display:flex;flex-direction:column;gap:2px;
   background-color:var(--app-bg);
@@ -256,13 +294,13 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
     radial-gradient(circle at 32% 78%, var(--chat-doodle) 0 6px, transparent 6px),
     radial-gradient(circle at 50% 45%, var(--chat-doodle) 0 3px, transparent 3px);
   background-size:280px 280px;
-  scroll-behavior:smooth;
 }
 .day{align-self:center;background:var(--panel);color:var(--text-soft);font-size:11.5px;padding:5px 12px;
   border-radius:99px;margin:10px 0 8px;box-shadow:var(--shadow)}
 .sys{align-self:center;background:var(--panel);color:var(--text-soft);font-size:12px;padding:7px 13px;
   border-radius:12px;margin:6px 0;box-shadow:var(--shadow);text-align:center;max-width:86%;line-height:1.45}
 .sys b{color:var(--accent)}
+.sys.bad{color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger),var(--shadow)}
 
 .row{display:flex;margin:1px 0;animation:in .18s ease}
 @keyframes in{from{opacity:0;transform:translateY(6px)}}
@@ -311,6 +349,12 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .typing i:nth-child(3){animation-delay:.32s}
 @keyframes bl{0%,60%,100%{opacity:.32;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 
+.offline-bar{
+  flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel-2);
+  border-top:1px solid var(--line);font-size:13px;color:var(--text-soft)
+}
+.offline-bar span{flex:1;line-height:1.4}
+
 .composer{
   flex:none;padding:8px 10px calc(8px + var(--safe-b));background:var(--app-bg);
   display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line)
@@ -328,7 +372,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 #send{
   width:48px;height:48px;border-radius:50%;background:var(--header-solid);background-image:var(--header);
   color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 4px 14px rgba(183,28,28,.35);
-  transition:transform .12s ease,filter .15s
+  transition:transform .12s ease
 }
 #send:active{transform:scale(.92)}
 #send[disabled]{opacity:.45;box-shadow:none;pointer-events:none}
@@ -369,7 +413,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .toast{
   position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--safe-b));
   background:rgba(25,10,10,.92);color:#fff;font-size:13px;padding:9px 16px;border-radius:99px;z-index:70;
-  animation:pop .15s ease;pointer-events:none;box-shadow:var(--shadow-lg);max-width:86%;text-align:center
+  animation:pop .15s ease;box-shadow:var(--shadow-lg);max-width:86%;text-align:center;cursor:pointer
 }
 .toast[hidden]{display:none}
 </style>
@@ -377,45 +421,169 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 <body>
 <div class="app">
 
-<!-- ══════════════════════ PANTALLA 1: SETUP ══════════════════════ -->
-<section class="screen" id="setup">
-  <div class="hero">
-    <div class="hero-mark">
-      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.7 14.9L2 22l5.3-1.3A10 10 0 1 0 12 2Zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.6.6.6-2.5-.2-.4A8 8 0 0 1 12 4Zm-3.2 5.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>
-    </div>
+<!-- ══════════════════════ HOME: LISTA DE CONVERSACIONES ══════════════════════ -->
+<section class="screen" id="home">
+  <header class="topbar">
+    <div class="avatar" id="me-av">?</div>
     <h1>ZeroHop</h1>
-    <p>Chat directo entre dos navegadores. Los mensajes no pasan por ningún servidor: viajan cifrados de punta a punta por WebRTC.</p>
-    <div class="badges">
-      <span class="badge">Sin servidor</span>
-      <span class="badge">Sin cuentas</span>
-      <span class="badge">Sin historial</span>
-      <span class="badge">1 archivo HTML</span>
+    <button class="icon-btn" id="btn-home-menu" title="Menú">
+      <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg>
+    </button>
+    <div class="menu" id="home-menu" hidden>
+      <button id="mi-join">
+        <svg viewBox="0 0 24 24"><path d="M20 6H10.4l-1.7-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-8.6 11.4-3.4-3.4 1.4-1.4 2 2 4.6-4.6L17.4 11l-6 6.4Z"/></svg>
+        Tengo una invitación
+      </button>
+      <button id="mi-settings">
+        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9.4 4c0-.5 0-1-.1-1.4l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.4-1.4L16 2.6H8l-.5 2.6c-.9.3-1.7.8-2.4 1.4l-2.4-1-2 3.4 2 1.6a8 8 0 0 0 0 2.8l-2 1.6 2 3.4 2.4-1c.7.6 1.5 1.1 2.4 1.4l.5 2.6h8l.5-2.6c.9-.3 1.7-.8 2.4-1.4l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.4Z"/></svg>
+        Ajustes e identidad
+      </button>
+      <button id="mi-theme-home">
+        <svg viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12v12Zm0 4a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>
+        Cambiar tema
+      </button>
     </div>
+  </header>
+
+  <div class="searchbar" id="searchbar" hidden>
+    <input id="search" placeholder="Buscar conversación" autocomplete="off" spellcheck="false">
   </div>
 
-  <div class="wrap">
-    <!-- Paso 0: elegir rol -->
-    <div class="card" id="card-role">
-      <h2>Empezá una conversación</h2>
-      <p class="sub">Uno de los dos crea la invitación y se la pasa al otro (por WhatsApp, mail, papel… lo que sea). El otro devuelve su respuesta y listo.</p>
+  <div class="list" id="list"></div>
 
+  <button class="fab" id="fab" title="Nueva invitación">
+    <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm-7 9h-2V9h2V7h2v2h2v2h-2v2h-2v-2Z"/></svg>
+  </button>
+</section>
+
+<!-- ══════════════════════ INVITACIÓN ══════════════════════ -->
+<section class="screen" id="invite" hidden>
+  <header class="topbar">
+    <button class="icon-btn" data-home title="Volver">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>
+    </button>
+    <h1 id="invite-title">Nueva conversación</h1>
+  </header>
+
+  <div class="scroll"><div class="wrap">
+
+    <!-- Anfitrión -->
+    <div class="card" id="card-host" hidden>
+      <div class="steps"><div class="step on" id="hs1"></div><div class="step" id="hs2"></div></div>
+      <h2 id="host-h2">Paso 1 · Pasale este link</h2>
+      <p class="sub" id="host-sub">Mandáselo a la otra persona. Cuando lo abra, se une al chat sin tener que copiar nada.</p>
+
+      <div id="host-wait" class="note" style="margin-bottom:10px">
+        <div class="spinner dark"></div>
+        <div>Generando tu invitación… (unos segundos)</div>
+      </div>
+      <textarea class="code-area" id="offer-out" readonly rows="3" hidden></textarea>
+      <div class="copy-row" id="offer-actions" hidden>
+        <button class="btn btn-primary btn-sm" data-copy="#offer-out">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+          <span data-copy-label>Copiar link</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" data-share="#offer-out">
+          <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
+          Compartir
+        </button>
+        <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
+      </div>
+      <div class="hint" id="offer-hint"></div>
+
+      <div class="field" style="margin-top:20px">
+        <div class="step-label"><span class="step-num">2</span> Pegá acá la respuesta que te devuelvan</div>
+        <textarea class="code-area" id="answer-in" rows="4" placeholder="Pegá acá el link o el código de respuesta…" spellcheck="false"></textarea>
+        <div class="err" id="host-err"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-connect-host" disabled>Conectar</button>
+    </div>
+
+    <!-- Invitado -->
+    <div class="card" id="card-guest" hidden>
+      <div class="steps"><div class="step on" id="gs1"></div><div class="step" id="gs2"></div></div>
+      <h2 id="guest-h2">Pegá la invitación</h2>
+      <p class="sub" id="guest-sub">Pegá el link o el código que te pasaron y generá tu respuesta.</p>
+
+      <div class="field" id="guest-offer-field">
+        <textarea class="code-area" id="offer-in" rows="4" placeholder="Pegá el link o el código de invitación…" spellcheck="false"></textarea>
+        <div class="err" id="guest-err"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-make-answer" disabled>Generar respuesta</button>
+
+      <div id="guest-step2" hidden style="margin-top:20px">
+        <div class="step-label"><span class="step-num">2</span> Devolvele esta respuesta y esperá</div>
+        <textarea class="code-area" id="answer-out" readonly rows="3"></textarea>
+        <div class="copy-row">
+          <button class="btn btn-primary btn-sm" data-copy="#answer-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            <span data-copy-label>Copiar link</span>
+          </button>
+          <button class="btn btn-ghost btn-sm" data-share="#answer-out">
+            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
+            Compartir
+          </button>
+          <button class="btn btn-ghost btn-sm" data-fmt="#answer-out">Ver código suelto</button>
+        </div>
+        <div class="note" style="margin-top:12px">
+          <div class="spinner dark"></div>
+          <div>Cuando la otra persona lo reciba, el chat se abre solo.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Respuesta abierta en una pestaña que no invitó -->
+    <div class="card" id="card-answer" hidden>
+      <h2>Respuesta recibida</h2>
+      <p class="sub" id="relay-sub">…</p>
+      <div id="relay-ok" class="note" hidden>
+        <div class="spinner dark"></div>
+        <div>Volvé a la pestaña donde creaste la invitación: el chat se está abriendo ahí.</div>
+      </div>
+      <div id="relay-manual" hidden>
+        <textarea class="code-area" id="relay-out" readonly rows="3"></textarea>
+        <div class="copy-row">
+          <button class="btn btn-primary btn-sm" data-copy="#relay-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            Copiar respuesta
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">Los mensajes van directo de un navegador al otro. Nada se guarda en ningún servidor.</div>
+  </div></div>
+</section>
+
+<!-- ══════════════════════ AJUSTES ══════════════════════ -->
+<section class="screen" id="settings" hidden>
+  <header class="topbar">
+    <button class="icon-btn" data-home title="Volver">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>
+    </button>
+    <h1>Ajustes</h1>
+  </header>
+
+  <div class="scroll"><div class="wrap">
+    <div class="card">
+      <h2>Tu identidad</h2>
+      <p class="sub">Tu nombre y tu ID viajan en cada invitación, así tus contactos te reconocen la próxima vez.</p>
       <div class="field">
         <label class="lbl" for="myname">Tu nombre</label>
         <input class="input" id="myname" maxlength="24" placeholder="¿Cómo te ven?" autocomplete="nickname">
       </div>
-
-      <div class="btn-row" style="flex-direction:column">
-        <button class="btn btn-primary" id="btn-host">
-          <svg viewBox="0 0 24 24"><path d="M12 4a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5a1 1 0 0 1 1-1Z"/></svg>
-          Crear invitación
-        </button>
-        <button class="btn btn-ghost" id="btn-guest">
-          <svg viewBox="0 0 24 24"><path d="M20 6H10.4l-1.7-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-8.6 11.4-3.4-3.4 1.4-1.4 2 2 4.6-4.6L17.4 11l-6 6.4Z"/></svg>
-          Tengo un código de invitación
-        </button>
+      <label class="lbl">Tu ID permanente</label>
+      <div class="idbox" id="my-id">…</div>
+      <div class="copy-row">
+        <button class="btn btn-ghost btn-sm" id="btn-copy-id">Copiar mi ID</button>
       </div>
+      <div class="hint">Es la huella de una clave que vive solo en este navegador. Sirve para que tus contactos verifiquen que sos vos, no para que te llamen: para hablar siguen necesitando un link nuevo.</div>
+    </div>
 
-      <div style="margin-top:16px" class="switch">
+    <div class="card">
+      <h2>Conexión</h2>
+      <p class="sub">Cómo se busca la ruta entre los dos navegadores.</p>
+      <div class="switch">
         <div>
           <label for="tgl-stun" style="font-weight:600">Usar servidores STUN públicos</label>
           <small>Solo sirven para descubrir tu IP pública y atravesar el router. No ven ni transportan tus mensajes. Apagalo si los dos están en la misma red local.</small>
@@ -425,7 +593,6 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 
       <details class="adv" id="adv">
         <summary>Opciones avanzadas · VPN y redes difíciles</summary>
-
         <div class="adv-body">
           <p class="advp">Si estás detrás de una VPN, de una red corporativa o de NAT simétrico, la conexión directa puede no armarse. Hay dos caminos, y ninguno de los dos ve tus mensajes.</p>
 
@@ -454,121 +621,29 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
           </div>
         </div>
       </details>
-
-      <div class="foot">
-        Nada se guarda en ningún lado. Al cerrar la pestaña, la conversación desaparece.
-      </div>
     </div>
 
-    <!-- Anfitrión -->
-    <div class="card" id="card-host" hidden>
-      <div class="steps"><div class="step on" id="hs1"></div><div class="step" id="hs2"></div></div>
-      <h2 id="host-h2">Paso 1 · Pasale este link</h2>
-      <p class="sub" id="host-sub">Mandáselo a la otra persona. Cuando lo abra, se une al chat sin tener que copiar nada.</p>
-
-      <div class="codebox">
-        <div id="host-wait" class="note" style="margin-bottom:10px">
-          <div class="spinner dark"></div>
-          <div>Generando tu invitación… (unos segundos)</div>
-        </div>
-        <textarea class="code-area" id="offer-out" readonly rows="5" hidden placeholder="…"></textarea>
-        <div class="copy-row" id="offer-actions" hidden>
-          <button class="btn btn-primary btn-sm" data-copy="#offer-out">
-            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-            <span data-copy-label>Copiar link</span>
-          </button>
-          <button class="btn btn-ghost btn-sm" data-share="#offer-out">
-            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
-            Compartir
-          </button>
-          <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
-        </div>
-        <div class="hint" id="offer-hint">La invitación viaja en la parte del link que va después del <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: ni GitHub ni nadie que aloje la página la ve.</div>
-      </div>
-
-      <div class="field" style="margin-top:20px">
-        <div class="step-label"><span class="step-num">2</span> Pegá acá la respuesta que te devuelvan</div>
-        <textarea class="code-area" id="answer-in" rows="5" placeholder="Pegá acá el link o el código de respuesta…" spellcheck="false"></textarea>
-        <div class="err" id="host-err"></div>
-      </div>
-      <button class="btn btn-primary" id="btn-connect-host" disabled>Conectar</button>
-      <div class="copy-row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-back>Volver</button></div>
+    <div class="card">
+      <h2>Datos guardados</h2>
+      <p class="sub">En este navegador se guardan solo tu identidad, tu nombre, tus contactos y estas preferencias. <b>Los mensajes nunca se guardan</b>: al cerrar la pestaña desaparecen.</p>
+      <button class="btn btn-ghost" id="btn-wipe" style="color:var(--danger);border-color:var(--danger)">
+        Borrar identidad y contactos
+      </button>
     </div>
 
-    <!-- Invitado -->
-    <div class="card" id="card-guest" hidden>
-      <div class="steps"><div class="step on" id="gs1"></div><div class="step" id="gs2"></div></div>
-      <h2 id="guest-h2">Paso 1 · Pegá la invitación</h2>
-      <p class="sub" id="guest-sub">Pegá el link o el código que te pasaron y generá tu respuesta.</p>
-
-      <div class="field" id="guest-name-field" hidden>
-        <label class="lbl" for="myname2">Tu nombre</label>
-        <input class="input" id="myname2" maxlength="24" placeholder="¿Cómo te ven?" autocomplete="nickname">
-      </div>
-
-      <div class="field">
-        <textarea class="code-area" id="offer-in" rows="5" placeholder="Pegá el código de invitación…" spellcheck="false"></textarea>
-        <div class="err" id="guest-err"></div>
-      </div>
-      <button class="btn btn-primary" id="btn-make-answer" disabled>Generar respuesta</button>
-
-      <div id="guest-step2" hidden style="margin-top:20px">
-        <div class="step-label"><span class="step-num">2</span> Devolvele esta respuesta y esperá</div>
-        <textarea class="code-area" id="answer-out" readonly rows="5"></textarea>
-        <div class="copy-row">
-          <button class="btn btn-primary btn-sm" data-copy="#answer-out">
-            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-            <span data-copy-label>Copiar link</span>
-          </button>
-          <button class="btn btn-ghost btn-sm" data-share="#answer-out">
-            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
-            Compartir
-          </button>
-          <button class="btn btn-ghost btn-sm" data-fmt="#answer-out">Ver código suelto</button>
-        </div>
-        <div class="note" style="margin-top:12px">
-          <div class="spinner dark"></div>
-          <div>Cuando la otra persona lo reciba, el chat se abre solo.</div>
-        </div>
-      </div>
-      <div class="copy-row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-back>Volver</button></div>
-    </div>
-
-    <!-- Se abrió un link de respuesta (#r=) en una pestaña que no es la que invitó -->
-    <div class="card" id="card-answer" hidden>
-      <h2 id="relay-h2">Respuesta recibida</h2>
-      <p class="sub" id="relay-sub">…</p>
-      <div id="relay-ok" class="note" hidden>
-        <div class="spinner dark"></div>
-        <div>Volvé a la pestaña donde creaste la invitación: el chat se está abriendo ahí.</div>
-      </div>
-      <div id="relay-manual" hidden>
-        <textarea class="code-area" id="relay-out" readonly rows="5"></textarea>
-        <div class="copy-row">
-          <button class="btn btn-primary btn-sm" data-copy="#relay-out">
-            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-            Copiar respuesta
-          </button>
-        </div>
-      </div>
-      <div class="copy-row" style="margin-top:14px"><button class="btn btn-ghost btn-sm" data-back>Ir al inicio</button></div>
-    </div>
-
-    <div class="foot">
-      ZeroHop · WebRTC + DTLS/SRTP · funciona incluso abriendo el archivo con doble clic
-    </div>
-  </div>
+    <div class="foot">ZeroHop · WebRTC + DTLS/SRTP · funciona incluso abriendo el archivo con doble clic</div>
+  </div></div>
 </section>
 
-<!-- ══════════════════════ PANTALLA 2: CHAT ══════════════════════ -->
+<!-- ══════════════════════ CHAT ══════════════════════ -->
 <section class="screen" id="chat" hidden>
   <header class="topbar">
-    <button class="icon-btn" id="btn-back-chat" title="Salir del chat">
+    <button class="icon-btn" data-home title="Volver a la lista">
       <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2Z"/></svg>
     </button>
     <div class="avatar" id="peer-av">?</div>
     <div class="peer">
-      <div class="nm" id="peer-name">Contacto</div>
+      <div class="nm"><span id="peer-name">Contacto</span><span class="vchip" id="peer-verified" hidden>VERIFICADO</span></div>
       <div class="st"><span class="dot" id="conn-dot"></span><span id="conn-txt">conectando…</span></div>
     </div>
     <button class="icon-btn" id="btn-menu" title="Menú">
@@ -584,9 +659,9 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>
         Detalles de la conexión
       </button>
-      <button id="mi-theme">
-        <svg viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12v12Zm0 4a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>
-        Cambiar tema
+      <button id="mi-reinvite">
+        <svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>
+        Reinvitar
       </button>
       <button id="mi-clear">
         <svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 7Zm3-4h6l1 2h4v2H4V5h4l1-2Z"/></svg>
@@ -597,6 +672,10 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
         <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.1.3-4.5.7v3c0 .4-.2.7-.5.9-.9.4-1.7 1-2.4 1.7-.2.2-.4.3-.7.3s-.5-.1-.7-.3l-2.5-2.5a1 1 0 0 1 0-1.4C3.9 8.9 7.8 7.3 12 7.3s8.1 1.6 11.3 4.1a1 1 0 0 1 0 1.4l-2.5 2.5c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.7-.7-1.5-1.3-2.4-1.7-.3-.2-.5-.5-.5-.9v-3C15.1 9.3 13.6 9 12 9Z"/></svg>
         Cortar conexión
       </button>
+      <button class="danger" id="mi-forget">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 7Zm3-4h6l1 2h4v2H4V5h4l1-2Z"/></svg>
+        Eliminar contacto
+      </button>
     </div>
   </header>
 
@@ -604,7 +683,12 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 
   <div class="emoji" id="emoji" hidden></div>
 
-  <div class="composer">
+  <div class="offline-bar" id="offline-bar" hidden>
+    <span id="offline-txt">Sin conexión.</span>
+    <button class="btn btn-primary btn-sm" id="btn-reinvite-bar">Reinvitar</button>
+  </div>
+
+  <div class="composer" id="composer">
     <div class="cbox">
       <button class="icon-btn" id="btn-emoji" title="Emojis">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 18c-2.3 0-4.3-1.4-5.2-3.4h10.4C16.3 16.6 14.3 18 12 18Z"/></svg>
@@ -620,10 +704,6 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
     </button>
   </div>
 
-  <div class="sheet" id="sheet" hidden>
-    <div class="sheet-in" id="sheet-in"></div>
-  </div>
-
   <div class="lightbox" id="lightbox" hidden>
     <img id="lightbox-img" alt="">
     <button class="icon-btn" id="lightbox-close">
@@ -632,53 +712,45 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
   </div>
 </section>
 
+<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 </div>
 
 <script>
 "use strict";
 /* ═══════════════════════════════════════════════════════════════════
-   ZeroHop — chat P2P sin servidor.
-   Señalización manual: los SDP se comprimen y se copian a mano.
-   Todo el tráfico va por el DataChannel (DTLS), sin intermediarios.
+   ZeroHop — varias conversaciones P2P en paralelo, sin servidor.
+
+   · Cada conversación tiene su propio RTCPeerConnection y DataChannel.
+   · La señalización sigue siendo manual (link o código copiado a mano).
+   · Se guarda una identidad (par de claves) y la agenda de contactos.
+     Los mensajes NO se guardan en ningún lado.
    ═══════════════════════════════════════════════════════════════════ */
 
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
-/* ───────────── Estado ───────────── */
-const S = {
-  pc: null,
-  dc: null,
-  role: null,            // 'host' | 'guest'
-  me: 'Vos',
-  peer: 'Contacto',
-  localSdp: '',
-  remoteSdp: '',
-  connected: false,
-  useStun: true,
-  manualIp: '',
-  turn: { url: '', user: '', pass: '' },
-  forceRelay: false,
-  msgs: new Map(),       // id -> {el, node}
-  lastDir: null,
-  lastDay: null,
-  peerTyping: false,
-  typingTimer: null,
-  typingSent: false,
-  incoming: null,        // recepción de archivo en curso
-  outQueue: Promise.resolve(),
-  unreadIds: new Set(),
-};
-
 const CHUNK = 16 * 1024;
-const HIGH_WATER = 1 * 1024 * 1024;
+const HIGH_WATER = 1024 * 1024;
+const ECDSA = { name: 'ECDSA', namedCurve: 'P-256' };
+const SIGN  = { name: 'ECDSA', hash: 'SHA-256' };
+
+/* ───────────── Estado global ───────────── */
+const ME = { name: '', fp: '', jwk: null, priv: null, ok: false };
+const convs = new Map();          // id -> conversación (viva o guardada)
+let current = null;               // conversación abierta
+let net = { useStun: true, manualIp: '', turn: { url: '', user: '', pass: '' }, forceRelay: false };
+let fmtLink = true;
+let inviteBinding = null;         // id de contacto al que apunta la invitación en curso
+let inviteConv = null;            // conversación que se está negociando en esa pantalla
 
 /* ───────────── Utilidades ───────────── */
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-const esc = s => s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const hhmm = t => new Date(t).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 const dayKey = t => new Date(t).toDateString();
+const clean = s => String(s == null ? '' : s).slice(0, 40);
+
 function humanSize(n){
   if (n < 1024) return n + ' B';
   if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
@@ -691,11 +763,165 @@ function dayLabel(t){
   if (d.toDateString() === ayer.toDateString()) return 'AYER';
   return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-let toastT;
-function toast(msg){
+function relTime(t){
+  if (!t) return '';
+  const d = new Date(t), hoy = new Date();
+  if (d.toDateString() === hoy.toDateString()) return hhmm(t);
+  if (d.toDateString() === new Date(Date.now() - 864e5).toDateString()) return 'ayer';
+  return d.toLocaleDateString('es', { day: '2-digit', month: '2-digit' });
+}
+let toastT, toastAction = null;
+function toast(msg, onClick){
   const t = $('#toast');
   t.textContent = msg; t.hidden = false;
-  clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2400);
+  toastAction = onClick || null;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { t.hidden = true; toastAction = null; }, 3200);
+}
+$('#toast').addEventListener('click', () => {
+  const fn = toastAction; $('#toast').hidden = true; toastAction = null;
+  if (fn) fn();
+});
+function hue(id){
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+const avatarColor = id => `hsl(${hue(id)} 42% 45%)`;
+const initial = name => (String(name || '?').trim()[0] || '?').toUpperCase();
+
+/* ───────────── Identidad ───────────── */
+async function fpOfJwk(jwk){
+  const raw = new TextEncoder().encode(`${jwk.crv}|${jwk.x}|${jwk.y}`);
+  const h = await crypto.subtle.digest('SHA-256', raw);
+  return [...new Uint8Array(h)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function loadIdentity(){
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('zh:me') || 'null'); } catch {}
+  ME.name = (saved && saved.name) || localStorage.getItem('zh:name') || '';
+  if (!self.crypto || !crypto.subtle){
+    ME.fp = saved && saved.fp ? saved.fp : 'sin-id-' + uid().slice(0, 6);
+    return;                                   // sin WebCrypto: seguimos, pero sin verificación
+  }
+  try {
+    if (saved && saved.pub && saved.privJwk){
+      ME.jwk = saved.pub;
+      ME.priv = await crypto.subtle.importKey('jwk', saved.privJwk, ECDSA, false, ['sign']);
+    } else {
+      const kp = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
+      ME.jwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
+      const privJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+      ME.priv = kp.privateKey;
+      localStorage.setItem('zh:me', JSON.stringify({ name: ME.name, pub: ME.jwk, privJwk }));
+    }
+    ME.fp = await fpOfJwk(ME.jwk);
+    ME.ok = true;
+  } catch (e){
+    ME.fp = 'sin-id-' + uid().slice(0, 6);
+  }
+}
+function saveIdentityName(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('zh:me') || '{}'); } catch {}
+  saved.name = ME.name;
+  localStorage.setItem('zh:me', JSON.stringify(saved));
+}
+const prettyId = fp => (fp.match(/.{1,4}/g) || [fp]).join(' ').toUpperCase();
+
+async function signText(text){
+  if (!ME.ok) return null;
+  const sig = await crypto.subtle.sign(SIGN, ME.priv, new TextEncoder().encode(text));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+}
+async function verifyText(jwk, sigB64, text){
+  if (!ME.ok || !jwk || !sigB64) return false;
+  try {
+    const key = await crypto.subtle.importKey('jwk', jwk, ECDSA, false, ['verify']);
+    const bin = atob(sigB64), sig = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) sig[i] = bin.charCodeAt(i);
+    return await crypto.subtle.verify(SIGN, key, sig, new TextEncoder().encode(text));
+  } catch { return false; }
+}
+
+/* ───────────── Contactos (persistidos) ───────────── */
+function loadContacts(){
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('zh:contacts') || '[]'); } catch {}
+  for (const c of list){
+    if (!c || !c.id) continue;
+    const conv = makeConv(c.id, c.name, c.jwk);
+    conv.lastTs = c.lastSeen || 0;
+    conv.preview = 'Sin conexión · tocá para reinvitar';
+    conv.saved = true;
+    conv.verifiedOnce = !!c.verified;
+  }
+}
+function saveContacts(){
+  const list = [...convs.values()]
+    .filter(c => c.saved && !c.id.startsWith('tmp:'))
+    .map(c => ({ id: c.id, name: c.name, jwk: c.jwk, lastSeen: c.lastTs, verified: c.verifiedOnce }));
+  localStorage.setItem('zh:contacts', JSON.stringify(list));
+}
+
+/* ───────────── Conversaciones ───────────── */
+function makeConv(id, name, jwk){
+  const conv = {
+    id, name: name || 'Contacto', jwk: jwk || null,
+    pc: null, dc: null, role: null, sid: '',
+    status: 'offline',                 // offline | inviting | connecting | online
+    localSdp: '', remoteSdp: '',
+    msgs: [], unread: 0, unreadIds: new Set(),
+    lastTs: 0, preview: '', saved: false,
+    verified: false, verifiedOnce: false, nonce: '',
+    typing: false, typingSent: false, typingTimer: null,
+    incoming: null, outQueue: Promise.resolve(),
+    lastDir: null, lastDay: null
+  };
+  convs.set(id, conv);
+  return conv;
+}
+
+// Cuando conocemos la identidad real del otro lado, la conversación temporal
+// pasa a vivir bajo el id del contacto (y se funde con la que ya existía).
+function rekey(conv, realId, name, jwk){
+  if (conv.id === realId){
+    if (name) conv.name = name;
+    if (jwk) conv.jwk = jwk;
+    return conv;
+  }
+  const old = convs.get(realId);
+  convs.delete(conv.id);
+  if (old && old !== conv){
+    closeConv(old, false);
+    conv.msgs = old.msgs.concat(conv.msgs);
+    conv.verifiedOnce = conv.verifiedOnce || old.verifiedOnce;
+    conv.saved = conv.saved || old.saved;
+    if (current === old) current = conv;
+  }
+  conv.id = realId;
+  if (name) conv.name = name;
+  if (jwk) conv.jwk = jwk;
+  convs.set(realId, conv);
+  return conv;
+}
+
+function convList(){
+  const q = ($('#search').value || '').trim().toLowerCase();
+  return [...convs.values()]
+    .filter(c => !q || c.name.toLowerCase().includes(q))
+    .sort((a, b) => (b.status === 'online') - (a.status === 'online') || b.lastTs - a.lastTs);
+}
+
+function closeConv(conv, notify = true){
+  if (notify) try { rawSend(conv, { t: 'bye' }); } catch {}
+  try { conv.dc && conv.dc.close(); } catch {}
+  try { conv.pc && conv.pc.close(); } catch {}
+  conv.dc = null; conv.pc = null;
+  conv.status = 'offline';
+  conv.verified = false;
+  conv.typing = false;
+  conv.incoming = null;
 }
 
 /* ───────────── Empaquetado de códigos (deflate + base64url) ───────────── */
@@ -713,32 +939,28 @@ const b64u = {
     return out;
   }
 };
-
 async function squeeze(bytes, mode){
-  const stream = new Blob([bytes]).stream().pipeThrough(new (mode === 'x' ? CompressionStream : DecompressionStream)('deflate-raw'));
+  const stream = new Blob([bytes]).stream()
+    .pipeThrough(new (mode === 'x' ? CompressionStream : DecompressionStream)('deflate-raw'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
-
-async function pack(kind, sdp){
-  const raw = new TextEncoder().encode(JSON.stringify({ k: kind, s: sdp }));
+async function pack(payload){
+  const raw = new TextEncoder().encode(JSON.stringify(payload));
   if (self.CompressionStream){
     try { return 'ZH1' + b64u.enc(await squeeze(raw, 'x')); } catch {}
   }
   return 'ZH0' + b64u.enc(raw);
 }
-
-// Acepta tanto el código suelto como un link completo que lo lleve en el #.
 const CODE_RE = /ZH[01][A-Za-z0-9_-]{16,}/;
 function extractCode(txt){
   const flat = (txt || '').trim().replace(/\s+/g, '');
   const m = CODE_RE.exec(flat);
   return m ? m[0] : flat;
 }
-
 async function unpack(code){
-  const clean = extractCode(code);
-  if (!clean) throw new Error('El código está vacío.');
-  const tag = clean.slice(0, 3), body = clean.slice(3);
+  const c = extractCode(code);
+  if (!c) throw new Error('El código está vacío.');
+  const tag = c.slice(0, 3), body = c.slice(3);
   if (tag !== 'ZH1' && tag !== 'ZH0') throw new Error('Eso no parece un código de ZeroHop.');
   let bytes;
   try { bytes = b64u.dec(body); } catch { throw new Error('El código está incompleto o mal copiado.'); }
@@ -748,7 +970,7 @@ async function unpack(code){
     catch { throw new Error('El código llegó cortado o modificado. Pedí que te lo manden de nuevo, entero.'); }
   }
   let obj;
-  try { obj = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new Error('El código está corrupto. Pedí que te lo manden de nuevo.'); }
+  try { obj = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new Error('El código está corrupto.'); }
   if (!obj || !obj.s || !obj.k) throw new Error('El código no tiene el formato esperado.');
   return obj;
 }
@@ -756,10 +978,10 @@ async function unpack(code){
 /* ───────────── WebRTC ───────────── */
 function rtcConfig(){
   const servers = [];
-  if (S.useStun) servers.push({ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] });
-  if (S.turn.url) servers.push({ urls: S.turn.url, username: S.turn.user, credential: S.turn.pass });
+  if (net.useStun) servers.push({ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] });
+  if (net.turn.url) servers.push({ urls: net.turn.url, username: net.turn.user, credential: net.turn.pass });
   const cfg = { iceServers: servers, iceCandidatePoolSize: 0 };
-  if (S.turn.url && S.forceRelay) cfg.iceTransportPolicy = 'relay';
+  if (net.turn.url && net.forceRelay) cfg.iceTransportPolicy = 'relay';
   return cfg;
 }
 
@@ -769,7 +991,7 @@ function rtcConfig(){
    Si el usuario nos dice su IP en el túnel, duplicamos cada candidato host
    con esa dirección. ICE prueba todos y se queda con el que responde. */
 function withManualIp(sdp){
-  const ip = S.manualIp;
+  const ip = net.manualIp;
   if (!ip) return sdp;
   const eol = sdp.includes('\r\n') ? '\r\n' : '\n';
   const out = [];
@@ -778,26 +1000,10 @@ function withManualIp(sdp){
     out.push(line);
     const m = /^a=candidate:(\S+) (\d+) (udp|tcp) (\d+) (\S+) (\d+) typ host(.*)$/i.exec(line);
     if (m && m[5].toLowerCase() !== ip.toLowerCase()){
-      // misma foundation base pero distinta, para que ICE los trate por separado
       out.push(`a=candidate:${m[1]}${++n} ${m[2]} ${m[3]} ${m[4]} ${ip} ${m[6]} typ host${m[7]}`);
     }
   }
   return out.join(eol);
-}
-
-function newPeer(){
-  const pc = new RTCPeerConnection(rtcConfig());
-  pc.onconnectionstatechange = () => {
-    const st = pc.connectionState;
-    if (st === 'connected') markConnected();
-    else if (st === 'disconnected') setStatus('bad', 'conexión inestable…');
-    else if (st === 'failed') linkDown('Se perdió la conexión: no hay una ruta disponible entre ambas redes. Con VPN o NAT simétrico probá las <b>Opciones avanzadas</b> de la pantalla inicial.');
-    else if (st === 'closed') setStatus('bad', 'desconectado');
-  };
-  pc.oniceconnectionstatechange = () => {
-    if (pc.iceConnectionState === 'failed') try { pc.restartIce && pc.restartIce(); } catch {}
-  };
-  return pc;
 }
 
 // Señalización manual: hay que esperar a tener todos los candidatos ICE
@@ -809,347 +1015,534 @@ function gatherComplete(pc, ms = 4000){
     const finish = () => { if (!done){ done = true; pc.removeEventListener('icegatheringstatechange', chk); res(); } };
     const chk = () => { if (pc.iceGatheringState === 'complete') finish(); };
     pc.addEventListener('icegatheringstatechange', chk);
-    // si en `ms` no terminó, seguimos con lo que haya (suele alcanzar)
     setTimeout(finish, ms);
   });
 }
 
-function wireChannel(dc){
-  S.dc = dc;
+// Los handlers buscan la conversación por su transporte en vez de capturarla:
+// así una conversación puede cambiar de identidad (o de objeto) sin recablear.
+const convForPc = pc => [...convs.values()].find(c => c.pc === pc);
+const convForDc = dc => [...convs.values()].find(c => c.dc === dc);
+
+function newPeer(){
+  const pc = new RTCPeerConnection(rtcConfig());
+  pc.onconnectionstatechange = () => {
+    const conv = convForPc(pc);
+    if (!conv) return;
+    const st = pc.connectionState;
+    if (st === 'connected') markOnline(conv);
+    else if (st === 'disconnected' && conv.status === 'online') setConvStatus(conv, 'online', 'conexión inestable…');
+    else if (st === 'failed') linkDown(conv, 'Se perdió la conexión: no hay una ruta disponible entre ambas redes.');
+  };
+  return pc;
+}
+
+function wireChannel(conv, dc){
+  conv.dc = dc;
   dc.binaryType = 'arraybuffer';
   dc.bufferedAmountLowThreshold = 256 * 1024;
-  dc.onopen = () => { markConnected(); send({ t: 'hi', name: S.me }); };
-  dc.onclose = () => linkDown('La conversación se cerró.');
-  dc.onmessage = onData;
+  dc.onopen = () => {
+    const c = convForDc(dc);
+    if (!c) return;
+    markOnline(c);
+    c.nonce = uid() + uid();
+    rawSend(c, { t: 'hello', name: ME.name || 'Anónimo', pub: ME.jwk, nonce: c.nonce });
+  };
+  dc.onclose = () => { const c = convForDc(dc); if (c) linkDown(c, 'La conversación se cerró.'); };
+  dc.onmessage = ev => { const c = convForDc(dc); if (c) onData(c, ev); };
 }
 
-async function startHost(){
-  S.role = 'host';
-  S.pc = newPeer();
-  wireChannel(S.pc.createDataChannel('zerohop', { ordered: true }));
-  const offer = await S.pc.createOffer();
-  await S.pc.setLocalDescription(offer);
-  await gatherComplete(S.pc);
-  S.localSdp = S.pc.localDescription.sdp;
-  return pack('o', withManualIp(S.localSdp));
+// El identificador de un contacto es la huella de su clave pública: no se
+// confía en el id que venga en el mensaje, se recalcula.
+async function identityOf(p){
+  const name = clean(p.name);
+  if (p.pub && ME.ok){
+    try { return { id: await fpOfJwk(p.pub), name, jwk: p.pub }; } catch {}
+  }
+  return { id: p.id || 'tmp:' + uid(), name, jwk: p.pub || null };
 }
 
-async function hostAccept(code){
-  const { k, s } = await unpack(code);
-  if (k !== 'a') throw new Error('Ese es un código de invitación, no una respuesta. Pedí el código que genera la otra persona.');
-  S.remoteSdp = s;
-  await S.pc.setRemoteDescription({ type: 'answer', sdp: s });
+// Mueve el transporte de una conversación a otra (cuando descubrimos que del
+// otro lado hay una identidad distinta a la que esperábamos).
+function moveTransport(from, to){
+  to.pc = from.pc; to.dc = from.dc; to.role = from.role; to.sid = from.sid;
+  to.localSdp = from.localSdp; to.remoteSdp = from.remoteSdp;
+  to.status = from.status;
+  from.pc = null; from.dc = null; from.sid = ''; from.status = 'offline';
 }
 
-async function startGuest(code){
-  const { k, s } = await unpack(code);
-  if (k !== 'o') throw new Error('Ese código es una respuesta, no una invitación.');
-  S.role = 'guest';
-  S.remoteSdp = s;
-  S.pc = newPeer();
-  S.pc.ondatachannel = e => wireChannel(e.channel);
-  await S.pc.setRemoteDescription({ type: 'offer', sdp: s });
-  const answer = await S.pc.createAnswer();
-  await S.pc.setLocalDescription(answer);
-  await gatherComplete(S.pc);
-  S.localSdp = S.pc.localDescription.sdp;
-  return pack('a', withManualIp(S.localSdp));
+async function startInvite(conv){
+  conv.role = 'host';
+  conv.sid = uid();
+  conv.status = 'inviting';
+  const pc = newPeer();
+  conv.pc = pc;
+  wireChannel(conv, pc.createDataChannel('zerohop', { ordered: true }));
+  await pc.setLocalDescription(await pc.createOffer());
+  await gatherComplete(pc);
+  conv.localSdp = pc.localDescription.sdp;
+  renderList();
+  return pack({ k: 'o', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp, name: ME.name || 'Anónimo', pub: ME.jwk });
+}
+
+async function acceptAnswer(raw){
+  const p = await unpack(raw);
+  if (p.k !== 'a') throw new Error('Ese es un código de invitación, no una respuesta. Pedí el código que genera la otra persona.');
+  let conv = [...convs.values()].find(c => c.sid && c.sid === p.sid && c.role === 'host' && c.status === 'inviting');
+  if (!conv) throw new Error('Esa respuesta es de otra invitación, o la invitación ya venció. Generá una nueva.');
+
+  const who = await identityOf(p);
+  conv.remoteSdp = p.s;
+
+  if (conv.saved && !conv.id.startsWith('tmp:') && who.id !== conv.id){
+    // Esperábamos a un contacto guardado y respondió otra identidad. No pisamos
+    // el contacto original: esta charla arranca como alguien distinto.
+    const esperado = conv.name;
+    const otro = convs.get(who.id) || makeConv(who.id, who.name || 'Desconocido', who.jwk);
+    if (otro.status !== 'offline') closeConv(otro, false);
+    moveTransport(conv, otro);
+    otro.remoteSdp = p.s;
+    otro.warnMismatch = esperado;
+    conv = otro;
+  } else {
+    conv = rekey(conv, who.id, who.name, who.jwk);
+  }
+  if (inviteConv) inviteConv = conv;         // la conversación pudo cambiar de objeto
+  setConvStatus(conv, 'connecting', 'conectando…');
+  await conv.pc.setRemoteDescription({ type: 'answer', sdp: p.s });
+  renderList();
+  return conv;
+}
+
+async function joinWithOffer(raw){
+  const p = await unpack(raw);
+  if (p.k !== 'o') throw new Error('Ese código es una respuesta, no una invitación.');
+  const who = await identityOf(p);
+  const conv = convs.get(who.id) || makeConv(who.id, who.name || 'Contacto', who.jwk);
+  if (conv.status !== 'offline') closeConv(conv, false);
+  if (who.name) conv.name = who.name;
+  if (who.jwk) conv.jwk = who.jwk;
+  conv.role = 'guest';
+  conv.sid = p.sid || '';
+  conv.remoteSdp = p.s;
+  const pc = newPeer();
+  conv.pc = pc;
+  pc.ondatachannel = e => wireChannel(conv, e.channel);
+  await pc.setRemoteDescription({ type: 'offer', sdp: p.s });
+  await pc.setLocalDescription(await pc.createAnswer());
+  await gatherComplete(pc);
+  conv.localSdp = pc.localDescription.sdp;
+  setConvStatus(conv, 'connecting', 'esperando…');
+  renderList();
+  const code = await pack({ k: 'a', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp, name: ME.name || 'Anónimo', pub: ME.jwk });
+  return { conv, code };
 }
 
 /* ───────────── Protocolo del canal ───────────── */
-function send(obj){
-  if (S.dc && S.dc.readyState === 'open'){ S.dc.send(JSON.stringify(obj)); return true; }
+function rawSend(conv, obj){
+  if (conv.dc && conv.dc.readyState === 'open'){ conv.dc.send(JSON.stringify(obj)); return true; }
   return false;
 }
 
-function onData(ev){
-  if (typeof ev.data !== 'string') return onBinary(ev.data);
+async function onData(conv, ev){
+  if (typeof ev.data !== 'string') return onBinary(conv, ev.data);
   let m; try { m = JSON.parse(ev.data); } catch { return; }
+
   switch (m.t){
-    case 'hi':
-      if (m.name){ S.peer = String(m.name).slice(0, 24); paintPeer(); }
+    case 'hello': {
+      const who = await identityOf(m);
+      if (conv.id.startsWith('tmp:') || conv.id === who.id){
+        conv = rekey(conv, who.id, who.name, who.jwk);
+      } else {
+        // la identidad del canal no coincide con la de la señalización
+        if (!conv.warnMismatch) conv.warnMismatch = conv.name;
+        if (who.name) conv.name = who.name;
+      }
+      conv.saved = true;
+      if (current === conv) paintPeer(conv);
+      // firmamos atando la identidad a esta sesión DTLS concreta
+      const code = await safetyCode(conv);
+      const sig = await signText(`zerohop|${code}|${m.nonce}`);
+      rawSend(conv, { t: 'proof', sig });
+      saveContacts(); renderList();
       break;
+    }
+    case 'proof': {
+      const code = await safetyCode(conv);
+      const ok = await verifyText(conv.jwk, m.sig, `zerohop|${code}|${conv.nonce}`);
+      conv.verified = ok;
+      if (conv.warnMismatch){
+        sysMsg(conv, `⚠️ <b>Esperabas a ${esc(conv.warnMismatch)} y del otro lado hay otra identidad.</b> Puede que haya reinstalado ZeroHop y perdido su clave… o que no sea quien pensás. Comparen el código de seguridad antes de contarse nada.`, true);
+        conv.warnMismatch = null;
+      } else if (ok && conv.verifiedOnce){
+        sysMsg(conv, `Identidad verificada: es el mismo <b>${esc(conv.name)}</b> de siempre.`);
+      }
+      if (ok){ conv.verifiedOnce = true; saveContacts(); }
+      if (current === conv) paintPeer(conv);
+      break;
+    }
     case 'msg':
-      hideTyping();
-      addBubble({ id: m.id, dir: 'in', kind: 'text', text: String(m.text ?? '').slice(0, 8000), ts: m.ts || Date.now() });
-      send({ t: 'ack', id: m.id, s: 'delivered' });
-      if (document.hasFocus() && nearBottom()) send({ t: 'ack', id: m.id, s: 'read' });
-      else S.unreadIds.add(m.id);
+      setTyping(conv, false);
+      addMsg(conv, { id: m.id, dir: 'in', kind: 'text', text: String(m.text ?? '').slice(0, 8000), ts: m.ts || Date.now() });
+      rawSend(conv, { t: 'ack', id: m.id, s: 'delivered' });
+      if (current === conv && document.hasFocus() && nearBottom()) rawSend(conv, { t: 'ack', id: m.id, s: 'read' });
+      else conv.unreadIds.add(m.id);
       break;
     case 'ack':
-      setTick(m.id, m.s);
+      setTick(conv, m.id, m.s);
       break;
     case 'typing':
-      m.v ? showTyping() : hideTyping();
+      setTyping(conv, !!m.v);
       break;
     case 'fmeta':
-      hideTyping();
-      S.incoming = { id: m.id, name: String(m.name || 'archivo').slice(0, 120), size: +m.size || 0, mime: m.mime || '', chunks: [], got: 0 };
-      addBubble({ id: m.id, dir: 'in', kind: 'file', name: S.incoming.name, size: S.incoming.size, mime: S.incoming.mime, ts: m.ts || Date.now(), progress: 0 });
+      setTyping(conv, false);
+      conv.incoming = { id: m.id, name: clean(m.name) || 'archivo', size: +m.size || 0, mime: m.mime || '', chunks: [], got: 0 };
+      addMsg(conv, { id: m.id, dir: 'in', kind: 'file', name: conv.incoming.name, size: conv.incoming.size,
+                     mime: conv.incoming.mime, ts: m.ts || Date.now(), progress: 0 });
       break;
     case 'fend':
-      finishIncoming();
+      finishIncoming(conv);
       break;
     case 'bye':
-      linkDown(`<b>${esc(S.peer)}</b> cerró la conversación.`);
+      linkDown(conv, `<b>${esc(conv.name)}</b> cerró la conversación.`);
       break;
   }
 }
 
-function onBinary(buf){
-  const inc = S.incoming;
+function onBinary(conv, buf){
+  const inc = conv.incoming;
   if (!inc) return;
   inc.chunks.push(buf);
   inc.got += buf.byteLength;
-  setProgress(inc.id, inc.size ? inc.got / inc.size : 0);
+  patchMsg(conv, inc.id, { progress: inc.size ? inc.got / inc.size : 0 });
 }
-
-function finishIncoming(){
-  const inc = S.incoming;
+function finishIncoming(conv){
+  const inc = conv.incoming;
   if (!inc) return;
-  S.incoming = null;
+  conv.incoming = null;
   const blob = new Blob(inc.chunks, { type: inc.mime || 'application/octet-stream' });
-  renderFileReady(inc.id, blob, inc);
+  patchMsg(conv, inc.id, { progress: 1, blob, url: URL.createObjectURL(blob), done: true });
 }
 
-/* ───────────── Envío de archivos (con control de flujo) ───────────── */
-function drain(){
+/* ───────────── Archivos ───────────── */
+function drain(conv){
   return new Promise(res => {
-    if (!S.dc || S.dc.bufferedAmount < HIGH_WATER) return res();
-    const on = () => { S.dc.removeEventListener('bufferedamountlow', on); res(); };
-    S.dc.addEventListener('bufferedamountlow', on);
+    if (!conv.dc || conv.dc.bufferedAmount < HIGH_WATER) return res();
+    const on = () => { conv.dc.removeEventListener('bufferedamountlow', on); res(); };
+    conv.dc.addEventListener('bufferedamountlow', on);
   });
 }
-
-function queueFile(file){
-  // Serializamos los envíos: el canal es ordenado, así que el receptor
-  // sabe que los binarios pertenecen al último 'fmeta' recibido.
-  S.outQueue = S.outQueue.then(() => sendFile(file)).catch(e => console.error(e));
+function queueFile(conv, file){
+  conv.outQueue = conv.outQueue.then(() => sendFile(conv, file)).catch(e => console.error(e));
 }
-
-async function sendFile(file){
-  if (!S.dc || S.dc.readyState !== 'open') return toast('No hay conexión activa');
+async function sendFile(conv, file){
+  if (!conv.dc || conv.dc.readyState !== 'open') return toast('No hay conexión activa');
   const id = uid(), ts = Date.now();
-  send({ t: 'fmeta', id, name: file.name, size: file.size, mime: file.type, ts });
-  addBubble({ id, dir: 'out', kind: 'file', name: file.name, size: file.size, mime: file.type, ts, progress: 0 });
+  rawSend(conv, { t: 'fmeta', id, name: file.name, size: file.size, mime: file.type, ts });
+  addMsg(conv, { id, dir: 'out', kind: 'file', name: file.name, size: file.size, mime: file.type, ts, progress: 0, state: 'sent' });
   let sent = 0;
   try {
     while (sent < file.size){
-      await drain();
-      if (!S.dc || S.dc.readyState !== 'open') throw new Error('canal cerrado');
+      await drain(conv);
+      if (!conv.dc || conv.dc.readyState !== 'open') throw new Error('canal cerrado');
       const buf = await file.slice(sent, sent + CHUNK).arrayBuffer();
-      S.dc.send(buf);
+      conv.dc.send(buf);
       sent += buf.byteLength;
-      setProgress(id, sent / file.size);
+      patchMsg(conv, id, { progress: sent / file.size });
     }
-    send({ t: 'fend', id, ts });
-    renderFileReady(id, file, { name: file.name, size: file.size, mime: file.type });
-    setTick(id, 'sent');
-  } catch (e){
-    setProgress(id, 0);
+    rawSend(conv, { t: 'fend', id, ts });
+    patchMsg(conv, id, { progress: 1, blob: file, url: URL.createObjectURL(file), done: true });
+  } catch {
+    patchMsg(conv, id, { failed: true });
     toast('No se pudo enviar ' + file.name);
   }
 }
 
-/* ───────────── UI del chat ───────────── */
-function nearBottom(){
-  const m = $('#msgs');
-  return m.scrollHeight - m.scrollTop - m.clientHeight < 120;
+/* ───────────── Mensajes: datos + render ───────────── */
+function addMsg(conv, m){
+  m.state = m.state || (m.dir === 'out' ? 'sent' : '');
+  conv.msgs.push(m);
+  conv.lastTs = m.ts;
+  conv.preview = m.kind === 'file' ? '📎 ' + m.name : m.text;
+  conv.saved = conv.saved || !conv.id.startsWith('tmp:');
+  if (current === conv){
+    appendRow(conv, m);
+    scrollDown(m.dir === 'out');
+  } else if (m.dir === 'in'){
+    conv.unread++;
+    toast(`${conv.name}: ${conv.preview.slice(0, 60)}`, () => openChat(conv));
+  }
+  renderList();
+  updateTitle();
+  if (conv.saved) saveContacts();
 }
-function toBottom(force){
-  const m = $('#msgs');
-  if (force || nearBottom()) requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+function patchMsg(conv, id, changes){
+  const m = conv.msgs.find(x => x.id === id);
+  if (!m) return;
+  Object.assign(m, changes);
+  if (current === conv){
+    const row = $(`.row[data-mid="${CSS.escape(id)}"]`, $('#msgs'));
+    if (row) redrawRow(conv, m, row);
+  }
 }
-
-function daySeparator(ts){
-  const k = dayKey(ts);
-  if (S.lastDay === k) return;
-  S.lastDay = k;
-  const d = document.createElement('div');
-  d.className = 'day'; d.textContent = dayLabel(ts);
-  $('#msgs').appendChild(d);
-  S.lastDir = null;
-}
-
-function sysMsg(html){
-  const d = document.createElement('div');
-  d.className = 'sys'; d.innerHTML = html;
-  $('#msgs').appendChild(d);
-  S.lastDir = null;
-  toBottom(true);
+function setTick(conv, id, state){
+  const m = conv.msgs.find(x => x.id === id);
+  if (!m) return;
+  if (m.state === 'read' && state === 'delivered') return;    // no retroceder
+  patchMsg(conv, id, { state });
 }
 
 const TICKS = {
   sent:      '<svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
-  delivered: '<svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41zm4.24-1.41L11.66 16.17 7.5 12.01l-1.41 1.41L11.66 19l12-12zM.41 13.41 6 19l1.41-1.41L1.83 12z"/></svg>',
-  pending:   '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm.8 3h-1.5v4.4l3.6 2.2.8-1.3-2.9-1.7V8Z"/></svg>'
+  delivered: '<svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41zm4.24-1.41L11.66 16.17 7.5 12.01l-1.41 1.41L11.66 19l12-12zM.41 13.41 6 19l1.41-1.41L1.83 12z"/></svg>'
 };
-
-function addBubble(m){
-  const box = $('#msgs');
-  daySeparator(m.ts);
-  const tail = S.lastDir !== m.dir;
-  S.lastDir = m.dir;
-
+function metaHtml(m){
+  const tick = m.dir === 'out' ? (m.state === 'sent' ? TICKS.sent : TICKS.delivered) : '';
+  return `<span class="meta${m.state === 'read' ? ' read' : ''}">${hhmm(m.ts)}${tick}</span>`;
+}
+function bubbleHtml(m){
+  if (m.kind === 'text') return metaHtml(m) + linkify(m.text);
+  if (m.done && (m.mime || '').startsWith('image/'))
+    return `<img class="photo" src="${m.url}" alt="${esc(m.name)}">` + metaHtml(m);
+  const action = m.done ? `<a class="dl" href="${m.url}" download="${esc(m.name)}">Guardar</a>` : '';
+  const bar = m.done ? '' : `<div class="bar"><i style="width:${Math.round((m.progress || 0) * 100)}%"></i></div>`;
+  return '<div class="att">' +
+      '<div class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg></div>' +
+      '<div class="tx"><div class="nm">' + esc(m.name) + '</div>' +
+      '<div class="sz">' + (m.failed ? 'no se pudo enviar' : humanSize(m.size)) + '</div></div>' +
+      action +
+    '</div>' + bar + metaHtml(m);
+}
+function redrawRow(conv, m, row){
+  const b = row.querySelector('.bubble');
+  b.className = 'bubble' + (m.kind === 'text' ? ' txt' : (m.done && (m.mime || '').startsWith('image/') ? ' pic' : ''));
+  b.innerHTML = bubbleHtml(m);
+  const img = b.querySelector('img.photo');
+  if (img) img.onclick = () => { $('#lightbox-img').src = m.url; $('#lightbox').hidden = false; };
+}
+function rowFor(conv, m){
+  const tail = conv.lastDir !== m.dir;
+  conv.lastDir = m.dir;
   const row = document.createElement('div');
   row.className = 'row ' + m.dir + (tail ? ' tail' : '');
-  const b = document.createElement('div');
-  b.className = 'bubble';
-
-  const meta = `<span class="meta" data-meta>${hhmm(m.ts)}${m.dir === 'out' ? TICKS.pending : ''}</span>`;
-
-  if (m.kind === 'text'){
-    b.className = 'bubble txt';
-    b.innerHTML = meta + linkify(m.text);
-  } else {
-    // ojo: sin saltos de línea sueltos, el HTML va dentro de la burbuja
-    b.innerHTML =
-      '<div class="att">' +
-        '<div class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg></div>' +
-        '<div class="tx"><div class="nm">' + esc(m.name) + '</div>' +
-        '<div class="sz">' + humanSize(m.size) + '</div></div>' +
-      '</div>' +
-      '<div class="bar"><i data-bar></i></div>' + meta;
-  }
-
-  row.appendChild(b);
-  box.appendChild(row);
-  S.msgs.set(m.id, { row, bubble: b, data: m });
-  toBottom(m.dir === 'out');
-  return b;
+  row.dataset.mid = m.id;
+  row.innerHTML = '<div class="bubble"></div>';
+  redrawRow(conv, m, row);
+  return row;
 }
-
+function appendRow(conv, m){
+  const box = $('#msgs');
+  const k = dayKey(m.ts);
+  if (conv.lastDay !== k){
+    conv.lastDay = k; conv.lastDir = null;
+    const d = document.createElement('div');
+    d.className = 'day'; d.textContent = dayLabel(m.ts);
+    box.appendChild(d);
+  }
+  box.insertBefore(rowFor(conv, m), $('#typing-row') || null);
+}
 function linkify(text){
   return esc(text).replace(/\bhttps?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
 }
-
-function setTick(id, state){
-  const rec = S.msgs.get(id);
-  if (!rec) return;
-  const meta = rec.bubble.querySelector('[data-meta]');
-  if (!meta) return;
-  const svg = state === 'read' || state === 'delivered' ? TICKS.delivered : TICKS.sent;
-  meta.innerHTML = hhmm(rec.data.ts) + svg;
-  meta.classList.toggle('read', state === 'read');
+function sysMsg(conv, html, bad){
+  conv.msgs.push({ id: uid(), kind: 'sys', html, bad, ts: Date.now() });
+  if (current === conv) appendSys(html, bad);
 }
-
-function setProgress(id, p){
-  const rec = S.msgs.get(id);
-  if (!rec) return;
-  const bar = rec.bubble.querySelector('[data-bar]');
-  if (bar) bar.style.width = Math.min(100, Math.round(p * 100)) + '%';
+function appendSys(html, bad){
+  const d = document.createElement('div');
+  d.className = 'sys' + (bad ? ' bad' : '');
+  d.innerHTML = html;
+  $('#msgs').insertBefore(d, $('#typing-row') || null);
+  if (current) current.lastDir = null;
+  scrollDown(true);
 }
-
-function renderFileReady(id, blob, info){
-  const rec = S.msgs.get(id);
-  if (!rec) return;
-  setProgress(id, 1);
-  const bar = rec.bubble.querySelector('.bar');
-  if (bar) bar.remove();
-  const url = URL.createObjectURL(blob);
-
-  if ((info.mime || '').startsWith('image/')){
-    const att = rec.bubble.querySelector('.att');
-    rec.bubble.classList.add('pic');
-    const img = document.createElement('img');
-    img.className = 'photo'; img.src = url; img.alt = info.name;
-    img.onload = () => toBottom();
-    img.onclick = () => { $('#lightbox-img').src = url; $('#lightbox').hidden = false; };
-    rec.bubble.insertBefore(img, att);
-    att.remove();
-  } else {
-    const a = document.createElement('a');
-    a.className = 'dl'; a.href = url; a.download = info.name; a.textContent = 'Guardar';
-    rec.bubble.querySelector('.att').appendChild(a);
+function renderMessages(conv){
+  const box = $('#msgs');
+  box.innerHTML = '';
+  conv.lastDay = null; conv.lastDir = null;
+  for (const m of conv.msgs){
+    if (m.kind === 'sys'){
+      const d = document.createElement('div');
+      d.className = 'sys' + (m.bad ? ' bad' : '');
+      d.innerHTML = m.html;
+      box.appendChild(d);
+      conv.lastDir = null;
+      continue;
+    }
+    const k = dayKey(m.ts);
+    if (conv.lastDay !== k){
+      conv.lastDay = k; conv.lastDir = null;
+      const d = document.createElement('div');
+      d.className = 'day'; d.textContent = dayLabel(m.ts);
+      box.appendChild(d);
+    }
+    box.appendChild(rowFor(conv, m));
   }
-  toBottom();
+  if (conv.typing) showTypingRow();
+  scrollDown(true);
+}
+function nearBottom(){
+  const m = $('#msgs');
+  return m.scrollHeight - m.scrollTop - m.clientHeight < 120;
+}
+function scrollDown(force){
+  const m = $('#msgs');
+  if (force || nearBottom()) requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+}
+function setTyping(conv, v){
+  conv.typing = v;
+  if (current !== conv) return;
+  v ? showTypingRow() : hideTypingRow();
+}
+function showTypingRow(){
+  if ($('#typing-row')) return;
+  const r = document.createElement('div');
+  r.className = 'row in'; r.id = 'typing-row';
+  r.innerHTML = '<div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>';
+  $('#msgs').appendChild(r);
+  scrollDown();
+}
+function hideTypingRow(){
+  const r = $('#typing-row');
+  if (r){ r.remove(); if (current) current.lastDir = null; }
 }
 
-let typingRow = null;
-function showTyping(){
-  if (typingRow) return;
-  typingRow = document.createElement('div');
-  typingRow.className = 'row in';
-  typingRow.innerHTML = '<div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>';
-  $('#msgs').appendChild(typingRow);
-  toBottom();
+/* ───────────── Estado de conexión ───────────── */
+function setConvStatus(conv, status, txt){
+  conv.status = status;
+  if (current === conv){
+    const dot = $('#conn-dot');
+    dot.className = 'dot' + (status === 'online' ? '' : status === 'offline' ? ' bad' : ' off');
+    $('#conn-txt').textContent = txt || status;
+  }
+  renderList();
 }
-function hideTyping(){ if (typingRow){ typingRow.remove(); typingRow = null; S.lastDir = null; } }
-
-function setStatus(kind, txt){
-  const dot = $('#conn-dot');
-  dot.className = 'dot' + (kind === 'ok' ? '' : ' ' + kind);
-  $('#conn-txt').textContent = txt;
+function markOnline(conv){
+  if (conv.status === 'online') return;
+  if (!conv.dc || conv.dc.readyState !== 'open') return;
+  setConvStatus(conv, 'online', 'en línea · cifrado punta a punta');
+  conv.saved = true;
+  if (!conv.msgs.length)
+    sysMsg(conv, 'Conexión directa establecida. Los mensajes viajan cifrados entre los dos navegadores, <b>sin pasar por ningún servidor</b>.');
+  else
+    sysMsg(conv, 'Conexión restablecida.');
+  // si estábamos negociando esta conversación, abrimos su chat al conectar
+  if ((inviteConv === conv && !$('#invite').hidden) || current === conv) openChat(conv);
+  else renderList();
+  saveContacts();
 }
-
-function paintPeer(){
-  $('#peer-name').textContent = S.peer;
-  $('#peer-av').textContent = (S.peer.trim()[0] || '?').toUpperCase();
-}
-
-// El enlace se cayó (cierre remoto, ICE caído o 'bye' del otro lado).
-function linkDown(reason){
-  if (!S.connected && !S.dc) return;
-  S.connected = false;
-  hideTyping();
-  setStatus('bad', 'desconectado');
-  $('#send').disabled = true;
-  $('#btn-file').disabled = true;
-  $('#input').disabled = true;
-  $('#input').placeholder = 'Conexión terminada';
-  if (reason) sysMsg(reason + ' Volvé al inicio para empezar otra.');
-  try { S.dc && S.dc.close(); } catch {}
+function linkDown(conv, reason){
+  if (conv.status === 'offline') return;
+  closeConv(conv, false);
+  conv.preview = 'Sin conexión · tocá para reinvitar';
+  if (reason) sysMsg(conv, reason, false);
+  if (current === conv){ paintChatState(conv); hideTypingRow(); }
+  renderList();
+  saveContacts();
 }
 
-function markConnected(){
-  if (S.connected) return;
-  if (!S.dc || S.dc.readyState !== 'open') return;
-  S.connected = true;
-  showScreen('chat');
-  setStatus('ok', 'en línea · cifrado punta a punta');
-  $('#send').disabled = false;
-  $('#btn-file').disabled = false;
-  $('#input').disabled = false;
-  $('#input').placeholder = 'Escribí un mensaje';
-  sysMsg('Conexión directa establecida. Los mensajes viajan cifrados entre los dos navegadores, <b>sin pasar por ningún servidor</b>.');
-  $('#input').focus();
+/* ───────────── Pantallas ───────────── */
+function show(id){
+  ['home', 'invite', 'settings', 'chat'].forEach(s => $('#' + s).hidden = (s !== id));
+  $('#home-menu').hidden = true;
+  $('#menu').hidden = true;
+}
+function goHome(){
+  current = null;
+  inviteConv = null;
+  show('home');
+  renderList();
+}
+function openChat(conv){
+  current = conv;
+  inviteConv = null;
+  conv.unread = 0;
+  show('chat');
+  paintPeer(conv);
+  paintChatState(conv);
+  renderMessages(conv);
+  flushRead();
+  updateTitle();
+  renderList();
+  if (conv.status === 'online') $('#input').focus();
+}
+function paintPeer(conv){
+  $('#peer-name').textContent = conv.name;
+  const av = $('#peer-av');
+  av.textContent = initial(conv.name);
+  av.style.background = avatarColor(conv.id);
+  $('#peer-verified').hidden = !conv.verified;
+}
+function paintChatState(conv){
+  const online = conv.status === 'online';
+  setConvStatus(conv, conv.status,
+    online ? 'en línea · cifrado punta a punta' :
+    conv.status === 'offline' ? 'sin conexión' : 'conectando…');
+  $('#composer').hidden = !online;
+  $('#offline-bar').hidden = online;
+  $('#send').disabled = !online;
+  $('#offline-txt').textContent = conv.status === 'offline'
+    ? `No estás conectado con ${conv.name}. Mandale una invitación nueva para volver a hablar.`
+    : 'Estableciendo la conexión…';
+  $('#btn-reinvite-bar').hidden = conv.status !== 'offline';
+}
+function updateTitle(){
+  const n = [...convs.values()].reduce((a, c) => a + c.unread, 0);
+  document.title = (n ? `(${n}) ` : '') + 'ZeroHop · Chat P2P sin servidor';
 }
 
-/* ───────────── Envío de texto ───────────── */
-function sendText(){
-  const ta = $('#input');
-  const text = ta.value.replace(/\s+$/, '');
-  if (!text) return;
-  if (!S.dc || S.dc.readyState !== 'open') return toast('No hay conexión activa');
-  const id = uid(), ts = Date.now();
-  send({ t: 'msg', id, text, ts });
-  addBubble({ id, dir: 'out', kind: 'text', text, ts });
-  setTick(id, 'sent');
-  ta.value = ''; autoGrow(ta);
-  if (S.typingSent){ send({ t: 'typing', v: false }); S.typingSent = false; }
-  ta.focus();
+/* ───────────── Lista de conversaciones ───────────── */
+function renderList(){
+  const box = $('#list');
+  const all = [...convs.values()];
+  $('#searchbar').hidden = all.length < 5;
+  const items = convList();
+  box.innerHTML = '';
+
+  if (!items.length){
+    box.innerHTML = all.length
+      ? '<div class="empty"><h3>Sin resultados</h3><p>Ningún contacto coincide con la búsqueda.</p></div>'
+      : `<div class="empty">
+           <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/></svg>
+           <h3>Todavía no hay conversaciones</h3>
+           <p>Tocá el botón rojo para crear una invitación y pasársela a alguien.<br>
+           También podés pegar una invitación que te hayan mandado.</p>
+         </div>`;
+    return;
+  }
+
+  for (const c of items){
+    const el = document.createElement('button');
+    el.className = 'conv' + (c.status === 'online' ? ' on' : '') + (c.unread ? ' unread' : '');
+    el.dataset.cid = c.id;
+    const preview = c.status === 'inviting' ? 'Esperando la respuesta…'
+                  : c.status === 'connecting' ? 'Conectando…'
+                  : c.typing ? '<b>escribiendo…</b>'
+                  : c.preview ? esc(c.preview.slice(0, 80))
+                  : (c.status === 'online' ? 'En línea' : 'Sin conexión · tocá para reinvitar');
+    el.innerHTML = `
+      <div class="av" style="background:${avatarColor(c.id)}">${esc(initial(c.name))}<i></i></div>
+      <div class="mid">
+        <div class="nm">${esc(c.name)}${c.verifiedOnce ? '<svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5-5L17.2 10l-6.4 6.2Z"/></svg>' : ''}</div>
+        <div class="pv">${preview}</div>
+      </div>
+      <div class="right">
+        <div class="rt">${relTime(c.lastTs)}</div>
+        ${c.unread ? `<div class="badge-n">${c.unread}</div>` : ''}
+      </div>`;
+    el.addEventListener('click', () => openChat(c));
+    box.appendChild(el);
+  }
 }
 
-function autoGrow(ta){
-  ta.style.height = 'auto';
-  ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
-}
-
-function pingTyping(){
-  if (!S.dc || S.dc.readyState !== 'open') return;
-  if (!S.typingSent){ send({ t: 'typing', v: true }); S.typingSent = true; }
-  clearTimeout(S.typingTimer);
-  S.typingTimer = setTimeout(() => { send({ t: 'typing', v: false }); S.typingSent = false; }, 2200);
-}
-
-/* ───────────── Código de seguridad (huellas DTLS) ───────────── */
-function fingerprint(sdp){
+/* ───────────── Código de seguridad y detalles ───────────── */
+function dtlsFp(sdp){
   const m = (sdp || '').match(/a=fingerprint:\S+\s+([0-9A-Fa-f:]+)/);
   return m ? m[1].toUpperCase() : '';
 }
-async function safetyCode(){
-  const a = fingerprint(S.localSdp), b = fingerprint(S.remoteSdp);
-  if (!a || !b) return null;
+async function safetyCode(conv){
+  const a = dtlsFp(conv.localSdp), b = dtlsFp(conv.remoteSdp);
+  if (!a || !b || !crypto.subtle) return null;
   try {
     const data = new TextEncoder().encode([a, b].sort().join('|'));
     const buf = await crypto.subtle.digest('SHA-256', data);
@@ -1157,28 +1550,26 @@ async function safetyCode(){
     return hex.slice(0, 20).match(/.{1,4}/g).join(' ');
   } catch { return null; }
 }
-
-/* ───────────── Hojas modales ───────────── */
-function sheet(html){
-  $('#sheet-in').innerHTML = html;
-  $('#sheet').hidden = false;
-}
+function sheet(html){ $('#sheet-in').innerHTML = html; $('#sheet').hidden = false; }
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').hidden = true; });
 
 async function showSafety(){
-  const code = await safetyCode();
+  if (!current) return;
+  const code = await safetyCode(current);
   sheet(`
     <h3>Código de seguridad</h3>
     <p>Se calcula con las huellas de los certificados DTLS de ambos lados. Si a los dos les aparece el mismo código, nadie se metió en el medio.</p>
     <div class="safety">${code ? esc(code) : 'No disponible'}</div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('sheet').hidden=true">Listo</button>`);
+    <div class="kv" style="margin-top:14px"><span>Identidad de ${esc(current.name)}</span><span>${current.verified ? '✔ verificada' : 'sin verificar'}</span></div>
+    <div class="kv"><span>Su ID</span><span>${esc(prettyId(current.id))}</span></div>
+    <button class="btn btn-primary" style="margin-top:16px" data-close-sheet>Listo</button>`);
 }
-
 async function showInfo(){
+  if (!current || !current.pc) return;
   let local = '—', remote = '—', proto = '—';
   try {
-    const stats = await S.pc.getStats();
-    let pair = null, cands = new Map();
+    const stats = await current.pc.getStats();
+    let pair = null; const cands = new Map();
     stats.forEach(r => {
       if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands.set(r.id, r);
       if (r.type === 'candidate-pair' && (r.state === 'succeeded' || r.nominated)) pair = r;
@@ -1193,106 +1584,45 @@ async function showInfo(){
   sheet(`
     <h3>Detalles de la conexión</h3>
     <p>Ruta que están usando los datos en este momento.</p>
-    <div class="kv"><span>Estado</span><span>${esc(S.pc ? S.pc.connectionState : '—')}</span></div>
-    <div class="kv"><span>Rol</span><span>${S.role === 'host' ? 'iniciaste el chat' : 'te uniste'}</span></div>
+    <div class="kv"><span>Estado</span><span>${esc(current.pc.connectionState)}</span></div>
+    <div class="kv"><span>Rol</span><span>${current.role === 'host' ? 'iniciaste el chat' : 'te uniste'}</span></div>
     <div class="kv"><span>Tu candidato</span><span>${esc(local)}</span></div>
     <div class="kv"><span>Candidato remoto</span><span>${esc(remote)}</span></div>
     <div class="kv"><span>Transporte</span><span>${esc(proto)} · DTLS</span></div>
     <div class="kv"><span>Servidor de mensajes</span><span>ninguno</span></div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('sheet').hidden=true">Cerrar</button>`);
+    <button class="btn btn-primary" style="margin-top:16px" data-close-sheet>Cerrar</button>`);
 }
+document.addEventListener('click', e => { if (e.target.closest('[data-close-sheet]')) $('#sheet').hidden = true; });
 
-/* ───────────── Navegación entre pantallas ───────────── */
-function showScreen(id){
-  ['setup', 'chat'].forEach(s => $('#' + s).hidden = (s !== id));
-}
-
-function resetAll(){
-  try { send({ t: 'bye' }); } catch {}
-  try { S.dc && S.dc.close(); } catch {}
-  try { S.pc && S.pc.close(); } catch {}
-  Object.assign(S, {
-    pc: null, dc: null, role: null, connected: false, localSdp: '', remoteSdp: '',
-    lastDir: null, lastDay: null, incoming: null, typingSent: false, outQueue: Promise.resolve()
-  });
-  S.msgs.clear();
-  $('#msgs').innerHTML = '';
-  hideTyping();
-  $('#offer-out').value = ''; $('#answer-in').value = '';
-  $('#offer-in').value = ''; $('#answer-out').value = '';
-  $('#offer-out').hidden = true; $('#offer-actions').hidden = true; $('#host-wait').style.display = '';
-  $('#guest-step2').hidden = true;
-  $('#guest-name-field').hidden = true;
-  $('#offer-in').closest('.field').hidden = false;
-  $('#btn-make-answer').hidden = false;
-  $('#guest-h2').textContent = 'Paso 1 · Pegá la invitación';
-  $('#guest-sub').textContent = 'Pegá el link o el código que te pasaron y generá tu respuesta.';
-  $('#btn-make-answer').innerHTML = 'Generar respuesta';
-  $('#btn-connect-host').innerHTML = 'Conectar';
-  $('#btn-connect-host').disabled = true;
-  $('#btn-make-answer').disabled = true;
-  $('#hs2').classList.remove('on'); $('#gs2').classList.remove('on');
-  hideErr('#host-err'); hideErr('#guest-err');
-  card('role');
-  showScreen('setup');
-}
-
-function card(which){
-  $('#card-role').hidden   = which !== 'role';
-  $('#card-host').hidden   = which !== 'host';
-  $('#card-guest').hidden  = which !== 'guest';
-  $('#card-answer').hidden = which !== 'answer';
-}
-
-function showErr(sel, msg){ const e = $(sel); e.textContent = msg; e.classList.add('show'); }
-function hideErr(sel){ $(sel).classList.remove('show'); }
-
-/* ───────────── Invitaciones como link ─────────────
-   El código va en el fragmento (#i=… / #r=…). El fragmento nunca se manda al
-   servidor en un pedido HTTP, así que quien alója la página —GitHub Pages o
-   quien sea— no ve las invitaciones ni puede reconstruir la conversación. */
+/* ───────────── Links de invitación ───────────── */
 const canLink = () => location.protocol === 'http:' || location.protocol === 'https:';
 const linkFor = (kind, code) => location.origin + location.pathname + '#' + kind + '=' + code;
-let fmtLink = true;
 
 function setShare(sel, kind, code){
   const el = $(sel);
-  el.dataset.code = code;
-  el.dataset.kind = kind;
+  el.dataset.code = code; el.dataset.kind = kind;
   refreshFmt();
 }
 function refreshFmt(){
   const useLink = fmtLink && canLink();
-  $$('[data-code]').forEach(el => {
-    el.value = useLink ? linkFor(el.dataset.kind, el.dataset.code) : el.dataset.code;
-    el.rows = useLink ? 3 : 5;
-  });
+  $$('[data-code]').forEach(el => { el.value = useLink ? linkFor(el.dataset.kind, el.dataset.code) : el.dataset.code; });
   $$('[data-copy-label]').forEach(s => s.textContent = useLink ? 'Copiar link' : 'Copiar código');
   $$('[data-fmt]').forEach(b => { b.textContent = useLink ? 'Ver código suelto' : 'Ver link'; b.hidden = !canLink(); });
-  const h = $('#offer-hint');
-  if (h) h.innerHTML = useLink
+  $('#offer-hint').innerHTML = useLink
     ? 'La invitación viaja en la parte del link posterior al <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: quien aloja la página no la ve.'
     : 'Código suelto, por si la otra persona abre el archivo HTML en su máquina en vez de la página web.';
 }
-$$('[data-fmt]').forEach(b => b.addEventListener('click', () => { fmtLink = !fmtLink; refreshFmt(); }));
 
 let bc = null;
 try { bc = new BroadcastChannel('zerohop'); } catch {}
-
-/* Si el que invitó abre el link de respuesta, se abre en una pestaña nueva y
-   el RTCPeerConnection original queda en la otra. En vez de perderlo, la
-   pestaña nueva le pasa la respuesta por BroadcastChannel (mismo navegador,
-   mismo origen) y la original conecta sola. */
-function listenAnswers(){
-  if (!bc) return;
-  bc.onmessage = ev => {
-    const m = ev.data;
-    if (m && m.t === 'answer' && S.role === 'host' && S.pc && !S.connected){
-      bc.postMessage({ t: 'taken' });
-      connectAsHost(m.code);
-    }
-  };
-}
+if (bc) bc.onmessage = async ev => {
+  const m = ev.data;
+  if (!m || m.t !== 'answer') return;
+  const waiting = [...convs.values()].some(c => c.sid === m.sid && c.status === 'inviting');
+  if (!waiting) return;
+  bc.postMessage({ t: 'taken', sid: m.sid });
+  try { await acceptAnswer(m.code); } catch (e){ toast(e.message); }
+};
 
 function showRelay(handedOver){
   $('#relay-ok').hidden = !handedOver;
@@ -1307,174 +1637,143 @@ async function openFromHash(){
   if (!m) return;
   const kind = m[1], code = extractCode(decodeURIComponent(m[2]));
   history.replaceState(null, '', location.pathname + location.search);
+
   if (kind === 'i'){
-    card('guest');
-    $('#guest-name-field').hidden = false;
+    show('invite');
+    showCard('guest');
+    $('#invite-title').textContent = 'Te invitaron a un chat';
     $('#guest-h2').textContent = 'Te invitaron a un chat';
-    $('#guest-sub').textContent = 'Poné tu nombre y devolvele la respuesta a quien te invitó. Nada de esto pasa por un servidor.';
-    $('#offer-in').value = code;
-    // llegó por link: no necesita ver ni pegar el código de invitación
-    $('#offer-in').closest('.field').hidden = true;
+    $('#guest-sub').textContent = 'Devolvele la respuesta a quien te invitó y listo. Nada de esto pasa por un servidor.';
+    $('#guest-offer-field').hidden = true;
     $('#btn-make-answer').hidden = true;
+    $('#offer-in').value = code;
     await makeAnswer(code);
-    $('#myname2').focus();
   } else {
-    if (S.role === 'host' && S.pc && !S.connected) return connectAsHost(code);
-    card('answer');
+    if (await tryLocalAnswer(code)) return;
+    show('invite');
+    showCard('answer');
+    $('#invite-title').textContent = 'Respuesta recibida';
     $('#relay-out').value = code;
     if (bc){
       let acked = false;
-      bc.onmessage = ev => { if (ev.data && ev.data.t === 'taken'){ acked = true; showRelay(true); } };
-      bc.postMessage({ t: 'answer', code });
+      const onMsg = ev => { if (ev.data && ev.data.t === 'taken'){ acked = true; showRelay(true); } };
+      bc.addEventListener('message', onMsg);
+      let sid = '';
+      try { sid = (await unpack(code)).sid || ''; } catch {}
+      bc.postMessage({ t: 'answer', code, sid });
       setTimeout(() => { if (!acked) showRelay(false); }, 1500);
     } else showRelay(false);
   }
 }
+async function tryLocalAnswer(code){
+  try {
+    const p = await unpack(code);
+    if (![...convs.values()].some(c => c.sid === p.sid && c.status === 'inviting')) return false;
+    const conv = await acceptAnswer(code);
+    openChat(conv);
+    return true;
+  } catch { return false; }
+}
 window.addEventListener('hashchange', openFromHash);
 
-/* ───────────── Eventos: setup ───────────── */
-const savedName = localStorage.getItem('zh:name') || '';
-$('#myname').value = savedName;
-$('#myname2').value = savedName;
-S.me = savedName.trim() || 'Anónimo';
-function onNameInput(e){
-  const v = e.target.value.trim();
-  S.me = v || 'Anónimo';
-  localStorage.setItem('zh:name', v);
-  ($('#myname') === e.target ? $('#myname2') : $('#myname')).value = e.target.value;
-  if (S.connected) send({ t: 'hi', name: S.me });   // ya conectados: avisamos el cambio
+/* ───────────── Flujo de invitación ───────────── */
+function showCard(which){
+  $('#card-host').hidden   = which !== 'host';
+  $('#card-guest').hidden  = which !== 'guest';
+  $('#card-answer').hidden = which !== 'answer';
 }
-$('#myname').addEventListener('input', onNameInput);
-$('#myname2').addEventListener('input', onNameInput);
-
-const tgl = $('#tgl-stun');
-function toggleStun(){
-  S.useStun = !S.useStun;
-  tgl.setAttribute('aria-checked', String(S.useStun));
+function resetInviteScreen(){
+  $('#offer-out').hidden = true; $('#offer-out').value = ''; delete $('#offer-out').dataset.code;
+  $('#offer-actions').hidden = true;
+  $('#host-wait').style.display = '';
+  $('#answer-in').value = ''; $('#btn-connect-host').disabled = true;
+  $('#btn-connect-host').innerHTML = 'Conectar';
+  $('#offer-in').value = ''; $('#btn-make-answer').disabled = true; $('#btn-make-answer').hidden = false;
+  $('#btn-make-answer').innerHTML = 'Generar respuesta';
+  $('#guest-offer-field').hidden = false;
+  $('#guest-step2').hidden = true; $('#answer-out').value = ''; delete $('#answer-out').dataset.code;
+  $('#guest-h2').textContent = 'Pegá la invitación';
+  $('#guest-sub').textContent = 'Pegá el link o el código que te pasaron y generá tu respuesta.';
+  $('#hs2').classList.remove('on'); $('#gs2').classList.remove('on');
+  $('#host-err').classList.remove('show'); $('#guest-err').classList.remove('show');
 }
-tgl.addEventListener('click', toggleStun);
-tgl.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleStun(); } });
 
-/* ── Opciones avanzadas (persisten en este navegador) ── */
-const IP_RE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]{2,45})$/;
-function loadAdv(){
+async function startHostFlow(bindTo){
+  inviteBinding = bindTo || null;
+  resetInviteScreen();
+  show('invite');
+  showCard('host');
+  const target = bindTo ? convs.get(bindTo) : null;
+  $('#invite-title').textContent = target ? 'Reinvitar a ' + target.name : 'Nueva conversación';
+  $('#host-sub').textContent = target
+    ? `Mandale este link a ${target.name}. Cuando lo abra, la app confirma que es la misma persona de siempre.`
+    : 'Mandáselo a la otra persona. Cuando lo abra, se une al chat sin tener que copiar nada.';
   try {
-    const a = JSON.parse(localStorage.getItem('zh:adv') || '{}');
-    S.manualIp = a.ip || '';
-    S.turn = { url: a.turnUrl || '', user: a.turnUser || '', pass: a.turnPass || '' };
-    S.forceRelay = !!a.relay;
-  } catch {}
-  $('#vpn-ip').value = S.manualIp;
-  $('#turn-url').value = S.turn.url;
-  $('#turn-user').value = S.turn.user;
-  $('#turn-pass').value = S.turn.pass;
-  $('#tgl-relay').setAttribute('aria-checked', String(S.forceRelay));
-  if (S.manualIp || S.turn.url) $('#adv').open = true;
-}
-function saveAdv(){
-  localStorage.setItem('zh:adv', JSON.stringify({
-    ip: S.manualIp, turnUrl: S.turn.url, turnUser: S.turn.user, turnPass: S.turn.pass, relay: S.forceRelay
-  }));
-}
-$('#vpn-ip').addEventListener('input', e => {
-  const v = e.target.value.trim();
-  S.manualIp = (v && IP_RE.test(v)) ? v : '';
-  e.target.style.borderColor = (v && !S.manualIp) ? 'var(--danger)' : '';
-  saveAdv();
-});
-$('#turn-url').addEventListener('input', e => { S.turn.url = e.target.value.trim(); saveAdv(); });
-$('#turn-user').addEventListener('input', e => { S.turn.user = e.target.value; saveAdv(); });
-$('#turn-pass').addEventListener('input', e => { S.turn.pass = e.target.value; saveAdv(); });
-const tglRelay = $('#tgl-relay');
-function toggleRelay(){
-  if (!S.turn.url && !S.forceRelay) return toast('Configurá primero un servidor TURN');
-  S.forceRelay = !S.forceRelay;
-  tglRelay.setAttribute('aria-checked', String(S.forceRelay));
-  saveAdv();
-}
-tglRelay.addEventListener('click', toggleRelay);
-tglRelay.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleRelay(); } });
-loadAdv();
-
-$('#btn-host').addEventListener('click', async () => {
-  card('host');
-  try {
-    const code = await startHost();
+    // reinvitar a un contacto reusa su conversación (aunque esté conectada:
+    // rehacer el enlace es justamente lo que se está pidiendo)
+    let conv;
+    if (target){ closeConv(target, true); target.status = 'offline'; conv = target; }
+    else conv = makeConv('tmp:' + uid(), 'Invitación');
+    inviteConv = conv;
+    const code = await startInvite(conv);
     $('#host-wait').style.display = 'none';
     $('#offer-out').hidden = false;
     setShare('#offer-out', 'i', code);
     $('#offer-actions').hidden = false;
     $('#hs2').classList.add('on');
-    listenAnswers();
   } catch (e){
     $('#host-wait').style.display = 'none';
-    showErr('#host-err', 'No se pudo crear la invitación: ' + e.message);
-  }
-});
-
-$('#btn-guest').addEventListener('click', () => { card('guest'); $('#offer-in').focus(); });
-
-$$('[data-back]').forEach(b => b.addEventListener('click', () => resetAll()));
-
-$('#answer-in').addEventListener('input', e => {
-  $('#btn-connect-host').disabled = e.target.value.trim().length < 10;
-  hideErr('#host-err');
-});
-
-async function connectAsHost(raw){
-  const btn = $('#btn-connect-host');
-  card('host');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Conectando…';
-  hideErr('#host-err');
-  try {
-    await hostAccept(raw);
-    setTimeout(() => {
-      if (!S.connected){
-        btn.disabled = false; btn.textContent = 'Conectar';
-        showErr('#host-err', 'No se pudo establecer la conexión directa. Suele pasar con VPN, redes corporativas o NAT simétrico. Abrí «Opciones avanzadas»: si los dos están en la misma VPN, cargá tu IP del túnel; si no, configurá un TURN propio. Después generá una invitación nueva.');
-      }
-    }, 15000);
-  } catch (e){
-    btn.disabled = false; btn.textContent = 'Conectar';
-    showErr('#host-err', e.message);
+    $('#host-err').textContent = 'No se pudo crear la invitación: ' + e.message;
+    $('#host-err').classList.add('show');
   }
 }
-$('#btn-connect-host').addEventListener('click', () => connectAsHost($('#answer-in').value));
-
-$('#offer-in').addEventListener('input', e => {
-  $('#btn-make-answer').disabled = e.target.value.trim().length < 10;
-  hideErr('#guest-err');
-});
 
 async function makeAnswer(raw){
   const btn = $('#btn-make-answer');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Generando…';
-  hideErr('#guest-err');
+  $('#guest-err').classList.remove('show');
   try {
-    const code = await startGuest(raw);
+    const { conv, code } = await joinWithOffer(raw);
+    inviteConv = conv;
     setShare('#answer-out', 'r', code);
     $('#guest-step2').hidden = false;
     $('#gs2').classList.add('on');
     btn.innerHTML = 'Respuesta generada';
     $('#answer-out').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e){
-    // si venía por link, mostramos el campo para que pueda corregir a mano
-    $('#offer-in').closest('.field').hidden = false;
-    btn.hidden = false;
-    btn.disabled = false; btn.textContent = 'Generar respuesta';
-    showErr('#guest-err', e.message);
+    $('#guest-offer-field').hidden = false;
+    btn.hidden = false; btn.disabled = false; btn.textContent = 'Generar respuesta';
+    $('#guest-err').textContent = e.message;
+    $('#guest-err').classList.add('show');
   }
 }
-$('#btn-make-answer').addEventListener('click', () => makeAnswer($('#offer-in').value));
 
-/* Copiar / compartir */
-async function copyText(txt){
+async function connectAsHost(raw){
+  const btn = $('#btn-connect-host');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Conectando…';
+  $('#host-err').classList.remove('show');
   try {
-    await navigator.clipboard.writeText(txt);
-    return true;
-  } catch {
+    const conv = await acceptAnswer(raw);
+    setTimeout(() => {
+      if (conv.status !== 'online'){
+        btn.disabled = false; btn.textContent = 'Conectar';
+        $('#host-err').innerHTML = 'No se pudo establecer la conexión directa. Suele pasar con VPN, redes corporativas o NAT simétrico. Probá las <b>Opciones avanzadas</b> en Ajustes y generá una invitación nueva.';
+        $('#host-err').classList.add('show');
+      }
+    }, 15000);
+  } catch (e){
+    btn.disabled = false; btn.textContent = 'Conectar';
+    $('#host-err').textContent = e.message;
+    $('#host-err').classList.add('show');
+  }
+}
+
+/* ───────────── Copiar / compartir ───────────── */
+async function copyText(txt){
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch {
     const ta = document.createElement('textarea');
     ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
@@ -1485,120 +1784,246 @@ async function copyText(txt){
   }
 }
 $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
-  const txt = $(b.dataset.copy).value;
-  toast(await copyText(txt) ? 'Código copiado' : 'Copialo a mano: seleccioná el texto');
+  toast(await copyText($(b.dataset.copy).value) ? 'Copiado' : 'Copialo a mano: seleccioná el texto');
 }));
 $$('[data-share]').forEach(b => b.addEventListener('click', async () => {
   const txt = $(b.dataset.share).value;
-  if (navigator.share){
-    try { await navigator.share({ title: 'ZeroHop', text: txt }); return; } catch {}
-  }
+  if (navigator.share){ try { await navigator.share({ title: 'ZeroHop', text: txt }); return; } catch {} }
   toast(await copyText(txt) ? 'Copiado al portapapeles' : 'No se pudo compartir');
 }));
+$$('[data-fmt]').forEach(b => b.addEventListener('click', () => { fmtLink = !fmtLink; refreshFmt(); }));
 
-/* ───────────── Eventos: chat ───────────── */
+/* ───────────── Envío de texto ───────────── */
+function sendText(){
+  const ta = $('#input');
+  const text = ta.value.replace(/\s+$/, '');
+  if (!text || !current) return;
+  if (!current.dc || current.dc.readyState !== 'open') return toast('No hay conexión activa');
+  const id = uid(), ts = Date.now();
+  rawSend(current, { t: 'msg', id, text, ts });
+  addMsg(current, { id, dir: 'out', kind: 'text', text, ts, state: 'sent' });
+  ta.value = ''; autoGrow(ta);
+  if (current.typingSent){ rawSend(current, { t: 'typing', v: false }); current.typingSent = false; }
+  ta.focus();
+}
+function autoGrow(ta){
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
+}
+function pingTyping(){
+  const c = current;
+  if (!c || !c.dc || c.dc.readyState !== 'open') return;
+  if (!c.typingSent){ rawSend(c, { t: 'typing', v: true }); c.typingSent = true; }
+  clearTimeout(c.typingTimer);
+  c.typingTimer = setTimeout(() => { rawSend(c, { t: 'typing', v: false }); c.typingSent = false; }, 2200);
+}
+function flushRead(){
+  const c = current;
+  if (!c || !c.unreadIds.size || !document.hasFocus() || !nearBottom()) return;
+  c.unreadIds.forEach(id => rawSend(c, { t: 'ack', id, s: 'read' }));
+  c.unreadIds.clear();
+}
+
+/* ───────────── Ajustes: red e identidad ───────────── */
+const IP_RE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]{2,45})$/;
+function loadNet(){
+  try {
+    const a = JSON.parse(localStorage.getItem('zh:adv') || '{}');
+    net.manualIp = a.ip || '';
+    net.turn = { url: a.turnUrl || '', user: a.turnUser || '', pass: a.turnPass || '' };
+    net.forceRelay = !!a.relay;
+    net.useStun = a.stun !== false;
+  } catch {}
+  $('#vpn-ip').value = net.manualIp;
+  $('#turn-url').value = net.turn.url;
+  $('#turn-user').value = net.turn.user;
+  $('#turn-pass').value = net.turn.pass;
+  $('#tgl-relay').setAttribute('aria-checked', String(net.forceRelay));
+  $('#tgl-stun').setAttribute('aria-checked', String(net.useStun));
+  if (net.manualIp || net.turn.url) $('#adv').open = true;
+}
+function saveNet(){
+  localStorage.setItem('zh:adv', JSON.stringify({
+    ip: net.manualIp, turnUrl: net.turn.url, turnUser: net.turn.user,
+    turnPass: net.turn.pass, relay: net.forceRelay, stun: net.useStun
+  }));
+}
+function bindToggle(sel, get, set){
+  const el = $(sel);
+  const flip = () => { set(!get()); el.setAttribute('aria-checked', String(get())); saveNet(); };
+  el.addEventListener('click', flip);
+  el.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); flip(); } });
+}
+
+/* ───────────── Eventos ───────────── */
+$$('[data-home]').forEach(b => b.addEventListener('click', goHome));
+$('#fab').addEventListener('click', () => startHostFlow(null));
+
+$('#btn-home-menu').addEventListener('click', e => { e.stopPropagation(); $('#home-menu').hidden = !$('#home-menu').hidden; });
+$('#btn-menu').addEventListener('click', e => { e.stopPropagation(); $('#menu').hidden = !$('#menu').hidden; });
+document.addEventListener('click', () => { $('#home-menu').hidden = true; $('#menu').hidden = true; });
+$('#home-menu').addEventListener('click', e => e.stopPropagation());
+$('#menu').addEventListener('click', e => e.stopPropagation());
+
+$('#mi-join').addEventListener('click', () => {
+  $('#home-menu').hidden = true;
+  inviteBinding = null;
+  resetInviteScreen();
+  show('invite');
+  showCard('guest');
+  $('#invite-title').textContent = 'Unirte a un chat';
+  $('#offer-in').focus();
+});
+$('#mi-settings').addEventListener('click', () => { $('#home-menu').hidden = true; show('settings'); });
+$('#search').addEventListener('input', renderList);
+
+$('#offer-in').addEventListener('input', e => {
+  $('#btn-make-answer').disabled = e.target.value.trim().length < 10;
+  $('#guest-err').classList.remove('show');
+});
+$('#btn-make-answer').addEventListener('click', () => makeAnswer($('#offer-in').value));
+$('#answer-in').addEventListener('input', e => {
+  $('#btn-connect-host').disabled = e.target.value.trim().length < 10;
+  $('#host-err').classList.remove('show');
+});
+$('#btn-connect-host').addEventListener('click', () => connectAsHost($('#answer-in').value));
+
 const input = $('#input');
 input.addEventListener('input', () => { autoGrow(input); pingTyping(); });
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendText(); }
 });
 $('#send').addEventListener('click', sendText);
+$('#msgs').addEventListener('scroll', flushRead);
+window.addEventListener('focus', flushRead);
 
 $('#btn-file').addEventListener('click', () => $('#file').click());
 $('#file').addEventListener('change', e => {
-  [...e.target.files].forEach(queueFile);
+  if (current) [...e.target.files].forEach(f => queueFile(current, f));
   e.target.value = '';
 });
-
-/* Drag & drop */
-const chatEl = $('#chat');
-['dragover', 'drop'].forEach(ev => chatEl.addEventListener(ev, e => {
+['dragover', 'drop'].forEach(ev => $('#chat').addEventListener(ev, e => {
   e.preventDefault();
-  if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files.length) [...e.dataTransfer.files].forEach(queueFile);
+  if (ev === 'drop' && current && e.dataTransfer && e.dataTransfer.files.length)
+    [...e.dataTransfer.files].forEach(f => queueFile(current, f));
 }));
-
-/* Pegar imágenes */
 input.addEventListener('paste', e => {
   const items = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file');
-  if (items.length){
+  if (items.length && current){
     e.preventDefault();
-    items.forEach(i => { const f = i.getAsFile(); if (f) queueFile(f); });
+    items.forEach(i => { const f = i.getAsFile(); if (f) queueFile(current, f); });
   }
 });
 
-/* Emojis */
 const EMOJIS = '😀 😂 🥹 😍 😘 😎 🤔 😴 🙃 😭 😡 👍 👎 🙌 👏 🙏 💪 🔥 ✨ 🎉 ❤️ 💔 ⭐ ✅ ❌ ⚡ 🍺 ☕ 🍕 🎁 🚀 🏠 🐶 🐱 🌚 🌈 💬 📎 📷 🔒'.split(' ');
 const emojiBox = $('#emoji');
 EMOJIS.forEach(e => {
   const b = document.createElement('button');
   b.type = 'button'; b.textContent = e;
-  b.addEventListener('click', () => {
-    input.value += e; autoGrow(input); input.focus(); pingTyping();
-  });
+  b.addEventListener('click', () => { input.value += e; autoGrow(input); input.focus(); pingTyping(); });
   emojiBox.appendChild(b);
 });
 $('#btn-emoji').addEventListener('click', e => { e.stopPropagation(); emojiBox.hidden = !emojiBox.hidden; });
 document.addEventListener('click', e => {
-  if (!emojiBox.hidden && !emojiBox.contains(e.target) && e.target.closest('#btn-emoji') === null) emojiBox.hidden = true;
+  if (!emojiBox.hidden && !emojiBox.contains(e.target) && !e.target.closest('#btn-emoji')) emojiBox.hidden = true;
 });
 
-/* Menú */
-const menu = $('#menu');
-$('#btn-menu').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
-document.addEventListener('click', () => { if (!menu.hidden) menu.hidden = true; });
-menu.addEventListener('click', e => e.stopPropagation());
-
-$('#mi-safety').addEventListener('click', () => { menu.hidden = true; showSafety(); });
-$('#mi-info').addEventListener('click',   () => { menu.hidden = true; showInfo(); });
-$('#mi-clear').addEventListener('click',  () => {
-  menu.hidden = true;
-  $('#msgs').innerHTML = ''; S.msgs.clear(); S.lastDay = null; S.lastDir = null; hideTyping();
-  sysMsg('Pantalla vaciada. (Los mensajes nunca se guardaron en ningún lado.)');
+$('#mi-safety').addEventListener('click', () => { $('#menu').hidden = true; showSafety(); });
+$('#mi-info').addEventListener('click', () => { $('#menu').hidden = true; showInfo(); });
+$('#mi-reinvite').addEventListener('click', () => { $('#menu').hidden = true; if (current) startHostFlow(current.id); });
+$('#btn-reinvite-bar').addEventListener('click', () => { if (current) startHostFlow(current.id); });
+$('#mi-clear').addEventListener('click', () => {
+  $('#menu').hidden = true;
+  if (!current) return;
+  current.msgs = []; current.preview = '';
+  renderMessages(current);
+  sysMsg(current, 'Pantalla vaciada. (Los mensajes nunca se guardaron en ningún lado.)');
+  renderList();
 });
 $('#mi-hang').addEventListener('click', () => {
-  menu.hidden = true;
-  if (confirm('¿Cortar la conexión y volver al inicio?')) resetAll();
+  $('#menu').hidden = true;
+  if (current && confirm('¿Cortar la conexión con ' + current.name + '?')){
+    closeConv(current, true);
+    linkDown(current, 'Cortaste la conexión.');
+    paintChatState(current);
+  }
 });
-$('#btn-back-chat').addEventListener('click', () => {
-  if (confirm('¿Salir del chat? Se corta la conexión y se pierden los mensajes.')) resetAll();
+$('#mi-forget').addEventListener('click', () => {
+  $('#menu').hidden = true;
+  if (!current) return;
+  if (!confirm('¿Eliminar a ' + current.name + ' de tu lista? Se corta la conexión si está activa.')) return;
+  closeConv(current, true);
+  convs.delete(current.id);
+  saveContacts();
+  goHome();
 });
 
-/* Tema */
+$('#myname').addEventListener('input', e => {
+  ME.name = e.target.value.trim().slice(0, 24);
+  saveIdentityName();
+  $('#me-av').textContent = initial(ME.name);
+  for (const c of convs.values()) if (c.status === 'online') rawSend(c, { t: 'hello', id: ME.fp, name: ME.name || 'Anónimo', pub: ME.jwk, nonce: c.nonce });
+});
+$('#btn-copy-id').addEventListener('click', async () => {
+  toast(await copyText(prettyId(ME.fp)) ? 'ID copiado' : 'No se pudo copiar');
+});
+$('#btn-wipe').addEventListener('click', () => {
+  if (!confirm('Esto borra tu identidad y todos tus contactos de este navegador. Las conversaciones abiertas se cortan. ¿Seguir?')) return;
+  for (const c of convs.values()) closeConv(c, true);
+  convs.clear();
+  localStorage.removeItem('zh:me');
+  localStorage.removeItem('zh:contacts');
+  localStorage.removeItem('zh:name');
+  location.reload();
+});
+$('#vpn-ip').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  net.manualIp = (v && IP_RE.test(v)) ? v : '';
+  e.target.style.borderColor = (v && !net.manualIp) ? 'var(--danger)' : '';
+  saveNet();
+});
+$('#turn-url').addEventListener('input', e => { net.turn.url = e.target.value.trim(); saveNet(); });
+$('#turn-user').addEventListener('input', e => { net.turn.user = e.target.value; saveNet(); });
+$('#turn-pass').addEventListener('input', e => { net.turn.pass = e.target.value; saveNet(); });
+bindToggle('#tgl-stun', () => net.useStun, v => net.useStun = v);
+bindToggle('#tgl-relay', () => net.forceRelay, v => {
+  if (v && !net.turn.url) return toast('Configurá primero un servidor TURN');
+  net.forceRelay = v;
+});
+
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('zh:theme', t);
 }
-applyTheme(localStorage.getItem('zh:theme') ||
-  (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-$('#mi-theme').addEventListener('click', () => {
-  menu.hidden = true;
-  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-});
+const flipTheme = () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+$('#mi-theme-home').addEventListener('click', () => { $('#home-menu').hidden = true; flipTheme(); });
 
-/* Lightbox */
 $('#lightbox-close').addEventListener('click', () => $('#lightbox').hidden = true);
 $('#lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') $('#lightbox').hidden = true; });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ $('#lightbox').hidden = true; $('#sheet').hidden = true; menu.hidden = true; emojiBox.hidden = true; }
+  if (e.key === 'Escape'){ $('#lightbox').hidden = true; $('#sheet').hidden = true; $('#menu').hidden = true; $('#home-menu').hidden = true; emojiBox.hidden = true; }
 });
-
-/* Acuses de lectura al volver a la ventana / bajar el scroll */
-function flushRead(){
-  if (!S.unreadIds.size || !document.hasFocus() || !nearBottom()) return;
-  S.unreadIds.forEach(id => send({ t: 'ack', id, s: 'read' }));
-  S.unreadIds.clear();
-}
-window.addEventListener('focus', flushRead);
-$('#msgs').addEventListener('scroll', flushRead);
-
-/* Si llegamos con un link de invitación o de respuesta, arrancamos ahí */
-refreshFmt();
-openFromHash();
-
-/* Aviso al cerrar con chat abierto */
 window.addEventListener('beforeunload', e => {
-  if (S.connected){ try { send({ t: 'bye' }); } catch {} e.preventDefault(); e.returnValue = ''; }
+  const live = [...convs.values()].filter(c => c.status === 'online');
+  if (live.length){
+    live.forEach(c => { try { rawSend(c, { t: 'bye' }); } catch {} });
+    e.preventDefault(); e.returnValue = '';
+  }
 });
+
+/* ───────────── Arranque ───────────── */
+(async function boot(){
+  applyTheme(localStorage.getItem('zh:theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  await loadIdentity();
+  $('#myname').value = ME.name;
+  $('#me-av').textContent = initial(ME.name);
+  $('#my-id').textContent = prettyId(ME.fp);
+  loadNet();
+  loadContacts();
+  refreshFmt();
+  renderList();
+  await openFromHash();
+})();
 </script>
 </body>
 </html>
