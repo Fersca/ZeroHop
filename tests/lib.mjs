@@ -1,5 +1,14 @@
 // Utilidades compartidas por las suites. Sin dependencias más allá de Playwright.
 
+import os from 'node:os';
+
+/** IP real de esta máquina: la usamos como si fuera la IP de un túnel VPN. */
+export function localIPv4(){
+  for (const list of Object.values(os.networkInterfaces()))
+    for (const i of list || []) if (i.family === 'IPv4' && !i.internal) return i.address;
+  return '127.0.0.1';
+}
+
 // PNG de 8x8, para probar que las imágenes se muestran en la burbuja
 export const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAANUlEQVR4nGO4dOmSubk5kMzMzASSs2fP' +

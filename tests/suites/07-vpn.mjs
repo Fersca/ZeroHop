@@ -1,4 +1,4 @@
-import { newUser, bothInChat, say } from '../lib.mjs';
+import { newUser, bothInChat, say, localIPv4 } from '../lib.mjs';
 
 // Simula el escenario VPN: Chrome oculta la IP local detrás de un nombre mDNS
 // que no resuelve a través del túnel, así que borramos esos candidatos del
@@ -12,12 +12,14 @@ const sinMdns = (page, code, kind) => page.evaluate(async ([c, k]) => {
 export default {
   name: 'VPN · candidato manual y configuración de red',
   async run(t, env){
-    const IP = '192.0.2.2';
+    // la IP de esta máquina hace de "IP del túnel": tiene que ser una a la que
+    // el otro navegador realmente pueda llegar, si no el test depende del entorno
+    const IP = localIPv4();
     const A = await newUser(env, 'Martín', { noStun: true, manualIp: IP });
     const B = await newUser(env, 'Sofía',  { noStun: true, manualIp: IP });
 
     t.ok(JSON.parse(await A.evaluate(() => localStorage.getItem('zh:adv'))).ip === IP,
-      'la IP del túnel queda guardada');
+      `la IP del túnel queda guardada (${IP})`);
 
     await A.click('#fab');
     await A.waitForSelector('#offer-out:not([hidden])', { timeout: 25000 });
