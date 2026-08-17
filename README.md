@@ -17,7 +17,7 @@ activar los avisos. A quien llega por una invitación le habla de eso en vez del
 ## Cómo se usa
 
 1. **Persona A** abre la página y toca el botón rojo de abajo a la derecha.
-   Sale un **link** para compartir. (El nombre se pone una vez en *Ajustes*.)
+   Sale un **link** para compartir.
 2. A le manda el link a **Persona B** por donde quiera: WhatsApp, mail, Signal, un papel.
    ZeroHop no lo envía a ningún lado.
 3. **B abre el link**: la app ya lo reconoce, le pide el nombre y genera el

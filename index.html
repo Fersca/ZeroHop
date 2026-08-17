@@ -158,6 +158,27 @@ button{cursor:pointer;border:0;background:none}
 .menu button.danger{color:var(--danger)}
 .menu button.danger svg{fill:var(--danger)}
 
+/* ─────────────────────────────  BIENVENIDA  ─────────────────────────────
+   Se habían quedado sin CSS al rehacer las pantallas: el hero es de acá. */
+.hero{
+  background:var(--header);color:#fff;padding:34px 22px 54px;text-align:center;
+  position:relative;overflow:hidden
+}
+.hero::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
+  background:var(--app-bg);border-radius:100% 100% 0 0 / 100% 100% 0 0
+}
+.hero-mark{
+  width:66px;height:66px;border-radius:20px;margin:0 auto 12px;
+  background:rgba(255,255,255,.16);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)
+}
+.hero-mark svg{width:36px;height:36px;fill:#fff}
+.hero h1{margin:0;font-size:26px;letter-spacing:-.4px;font-weight:700}
+.hero p{margin:7px auto 0;max-width:460px;font-size:14px;opacity:.9;line-height:1.5}
+#welcome .wrap{padding-top:0}
+#welcome .card{margin-top:-26px;position:relative;z-index:1;box-shadow:var(--shadow-lg)}
+
 /* ─────────────────────────────  HOME: LISTA  ───────────────────────────── */
 #home{background:var(--panel)}
 .searchbar{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
