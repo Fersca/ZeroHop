@@ -2,6 +2,7 @@ import { newUser, connectByPaste, bothInChat } from '../lib.mjs';
 
 export default {
   name: 'Links y WhatsApp · invitación, respuesta y navegador embebido',
+  web: true,      // necesita http(s): links, service worker y almacenamiento por pestaña
   async run(t, env){
     const A = await newUser(env, 'Fernando', { phone: '+54 9 11 5555 1234' });
     const B = await newUser(env, 'Luciana',  { phone: '+54 9 11 4444 9876' });

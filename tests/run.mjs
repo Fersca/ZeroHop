@@ -25,10 +25,15 @@ const SUITES = [
   '05-multi.mjs',
   '06-links.mjs',
   '07-vpn.mjs',
-  '08-csp.mjs'
+  '08-csp.mjs',
+  '09-pwa.mjs'
 ];
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.md': 'text/plain; charset=utf-8' };
+const TYPES = {
+  '.html': 'text/html; charset=utf-8', '.json': 'application/json',
+  '.js': 'text/javascript; charset=utf-8', '.png': 'image/png',
+  '.md': 'text/plain; charset=utf-8'
+};
 
 async function serve(){
   const server = http.createServer(async (req, res) => {
@@ -77,6 +82,10 @@ const run = async () => {
       info(msg){ console.log(`    ${C.dim}${msg}${C.off}`); }
     };
     console.log(`${C.b}${suite.name}${C.off}`);
+    if (suite.web && url.startsWith('file:')){
+      console.log(`  ${C.dim}(se saltea con file://: necesita links y service worker)${C.off}\n`);
+      continue;
+    }
     const t0 = Date.now();
     try {
       await suite.run(t, env);

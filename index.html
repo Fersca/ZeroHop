@@ -6,9 +6,15 @@
 <meta name="color-scheme" content="light dark">
 <!-- El script inline se permite por su hash: nada externo puede cargarse y un
      script inyectado no corre. Si editás el script, corré: npm run csp -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LhwIPLbK5XQc1629B6ZXo9/GzAF1n8WPiS1qW6B3qVs='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-uX5IK9yLeoOSZTlEdesoHC7e8/9WjM+yCyMIOZp0LY4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'self' blob:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>ZeroHop · Chat P2P sin servidor</title>
 <meta name="description" content="Chat privado navegador a navegador con WebRTC. Sin servidor intermedio, sin cuentas, sin historial.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#d32f2f" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#5c0f12" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ZeroHop">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23d32f2f'/><path d='M25 32h50v30H46l-13 12V62H25z' fill='white'/></svg>">
 <style>
 /* ─────────────────────────────  TEMA  ───────────────────────────── */
@@ -87,8 +93,12 @@ button{cursor:pointer;border:0;background:none}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-thumb{background:rgba(150,90,90,.35);border-radius:99px}
 
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.wel-list{margin:4px 0 16px;padding-left:20px;font-size:13.5px;color:var(--text-soft);line-height:1.6}
+.wel-list li{margin-bottom:9px}
+.wel-list b{color:var(--text)}
 .app{
-  height:100dvh;
+  height:var(--vph,100dvh);
   max-width:1080px;
   margin:0 auto;
   background:var(--panel);
@@ -99,7 +109,7 @@ button{cursor:pointer;border:0;background:none}
 }
 @media(min-width:900px){
   body{padding:22px}
-  .app{height:calc(100dvh - 44px);border-radius:14px;box-shadow:var(--shadow-lg)}
+  .app{height:calc(var(--vph,100dvh) - 44px);border-radius:14px;box-shadow:var(--shadow-lg)}
 }
 
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--panel)}
@@ -431,6 +441,46 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 <body>
 <div class="app">
 
+<!-- ══════════════════════ PRIMER USO ══════════════════════ -->
+<section class="screen" id="welcome" hidden>
+  <div class="scroll" style="background:var(--app-bg)">
+    <div class="hero">
+      <div class="hero-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.7 14.9L2 22l5.3-1.3A10 10 0 1 0 12 2Zm0 2a8 8 0 1 1-4.1 14.9l-.4-.2-2.6.6.6-2.5-.2-.4A8 8 0 0 1 12 4Zm-3.2 5.2a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm3.2 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z"/></svg>
+      </div>
+      <h1 id="wel-title">ZeroHop</h1>
+      <p id="wel-lead">Chat directo entre dos navegadores. Sin servidor en el medio, sin cuentas y sin historial.</p>
+    </div>
+
+    <div class="wrap">
+      <div class="card">
+        <h2 id="wel-h2">¿Cómo te llamás?</h2>
+        <p class="sub">Es el nombre que van a ver tus contactos. Se guarda solo en este navegador y lo podés cambiar cuando quieras.</p>
+        <div class="field">
+          <input class="input" id="wel-name" maxlength="24" placeholder="Tu nombre" autocomplete="nickname">
+        </div>
+
+        <ul class="wel-list">
+          <li>Los mensajes van <b>directo de tu navegador al otro</b>, cifrados. Nadie los guarda, ni nosotros.</li>
+          <li>Para hablar, <b>los dos tienen que estar con la app abierta</b> al mismo tiempo. Es una línea, no un buzón.</li>
+          <li>Para empezar, le pasás un <b>link</b> a la otra persona por WhatsApp o por donde quieras.</li>
+        </ul>
+
+        <div class="switch">
+          <div>
+            <label for="tgl-notify-wel" style="font-weight:600">Avisarme cuando llegue un mensaje</label>
+            <small>Notificación del sistema mientras la app esté abierta. Podés cambiarlo en Ajustes.</small>
+          </div>
+          <div class="tgl" id="tgl-notify-wel" role="switch" aria-checked="false" tabindex="0"></div>
+        </div>
+
+        <button class="btn btn-primary" id="wel-go" style="margin-top:16px" disabled>Empezar</button>
+      </div>
+      <div class="foot">Tu identidad se genera en este navegador. Nada se envía a ningún servidor.</div>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════════════════ HOME: LISTA DE CONVERSACIONES ══════════════════════ -->
 <section class="screen" id="home">
   <header class="topbar">
@@ -748,6 +798,8 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 
   <div class="offline-bar" id="offline-bar" hidden>
     <span id="offline-txt">Sin conexión.</span>
+    <a class="btn btn-wa btn-sm" id="wa-ping" target="_blank" rel="noopener" href="#" style="margin:0"
+       title="Avisarle por WhatsApp que se conecte">Avisarle</a>
     <button class="btn btn-primary btn-sm" id="btn-reinvite-bar">Reinvitar</button>
   </div>
 
@@ -775,6 +827,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
   </div>
 </section>
 
+<div id="live" class="sr" role="status" aria-live="polite"></div>
 <div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 </div>
@@ -1469,10 +1522,14 @@ function retryMsg(id){
    Nada de esto necesita servidor: son APIs del navegador y solo funcionan
    mientras la pestaña esté abierta (aunque esté de fondo). */
 const prefs = { notify: false, sound: true };
+function paintNotifyToggles(){
+  for (const sel of ['#tgl-notify', '#tgl-notify-wel'])
+    $(sel).setAttribute('aria-checked', String(prefs.notify));
+}
 function loadPrefs(){
   try { Object.assign(prefs, JSON.parse(localStorage.getItem('zh:prefs') || '{}')); } catch {}
   if (!('Notification' in window) || Notification.permission !== 'granted') prefs.notify = false;
-  $('#tgl-notify').setAttribute('aria-checked', String(prefs.notify));
+  paintNotifyToggles();
   $('#tgl-sound').setAttribute('aria-checked', String(prefs.sound));
 }
 const savePrefs = () => localStorage.setItem('zh:prefs', JSON.stringify(prefs));
@@ -1519,7 +1576,7 @@ async function toggleNotify(){
     if (perm !== 'granted') return toast('El navegador bloqueó los avisos');
     prefs.notify = true;
   }
-  $('#tgl-notify').setAttribute('aria-checked', String(prefs.notify));
+  paintNotifyToggles();
   savePrefs();
 }
 
@@ -1539,7 +1596,10 @@ function addMsg(conv, m){
     if (!conv.newFrom) conv.newFrom = m.id;
     toast(`${conv.name}: ${conv.preview.slice(0, 60)}`, () => openChat(conv));
   }
-  if (m.dir === 'in' && !aLaVista) alertNew(conv, m);
+  if (m.dir === 'in'){
+    $('#live').textContent = `${conv.name}: ${conv.preview.slice(0, 120)}`;
+    if (!aLaVista) alertNew(conv, m);
+  }
   renderList();
   updateTitle();
   if (conv.saved) saveContacts();
@@ -1714,9 +1774,9 @@ function markOnline(conv){
   else renderList();
   saveContacts();
 }
-function linkDown(conv, reason){
+function linkDown(conv, reason, avisar){
   if (conv.status === 'offline') return;
-  closeConv(conv, false);
+  closeConv(conv, !!avisar);
   conv.preview = 'Sin conexión · tocá para reinvitar';
   // lo que salió pero nunca se confirmó: no sabemos si llegó, y lo decimos
   let dudosos = 0;
@@ -1736,7 +1796,7 @@ function linkDown(conv, reason){
 
 /* ───────────── Pantallas ───────────── */
 function show(id){
-  ['home', 'invite', 'settings', 'chat'].forEach(s => $('#' + s).hidden = (s !== id));
+  ['welcome', 'home', 'invite', 'settings', 'chat'].forEach(s => $('#' + s).hidden = (s !== id));
   $('#home-menu').hidden = true;
   $('#menu').hidden = true;
 }
@@ -1779,6 +1839,10 @@ function paintChatState(conv){
     ? `No estás conectado con ${conv.name}. Mandale una invitación nueva para volver a hablar.`
     : 'Estableciendo la conexión…';
   $('#btn-reinvite-bar').hidden = conv.status !== 'offline';
+  const ping = $('#wa-ping');
+  ping.hidden = conv.status !== 'offline';
+  ping.href = waUrl(conv.phone, `¿Te conectás a ZeroHop? Te quiero escribir por ahí.` +
+    (canLink() ? '\n\n' + location.origin + location.pathname : ''));
 }
 function updateTitle(){
   const n = [...convs.values()].reduce((a, c) => a + c.unread, 0);
@@ -2289,11 +2353,8 @@ $('#mi-clear').addEventListener('click', () => {
 });
 $('#mi-hang').addEventListener('click', () => {
   $('#menu').hidden = true;
-  if (current && confirm('¿Cortar la conexión con ' + current.name + '?')){
-    closeConv(current, true);
-    linkDown(current, 'Cortaste la conexión.');
-    paintChatState(current);
-  }
+  if (current && confirm('¿Cortar la conexión con ' + current.name + '?'))
+    linkDown(current, 'Cortaste la conexión.', true);
 });
 $('#mi-forget').addEventListener('click', () => {
   $('#menu').hidden = true;
@@ -2351,8 +2412,10 @@ $('#vpn-ip').addEventListener('input', e => {
 $('#turn-url').addEventListener('input', e => { net.turn.url = e.target.value.trim(); saveNet(); });
 $('#turn-user').addEventListener('input', e => { net.turn.user = e.target.value; saveNet(); });
 $('#turn-pass').addEventListener('input', e => { net.turn.pass = e.target.value; saveNet(); });
-$('#tgl-notify').addEventListener('click', toggleNotify);
-$('#tgl-notify').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleNotify(); } });
+for (const sel of ['#tgl-notify', '#tgl-notify-wel']){
+  $(sel).addEventListener('click', toggleNotify);
+  $(sel).addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleNotify(); } });
+}
 function toggleSound(){
   prefs.sound = !prefs.sound;
   $('#tgl-sound').setAttribute('aria-checked', String(prefs.sound));
@@ -2387,6 +2450,39 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
+/* ───────────── Primer uso ─────────────
+   Sin esto, alguien abre la app, no sabe qué es y se conecta como "Anónimo". */
+const needsWelcome = () => !localStorage.getItem('zh:onboarded');
+
+function prepWelcome(){
+  const invitado = /^#i=/.test(location.hash || '');
+  $('#wel-name').value = ME.name;
+  $('#wel-go').disabled = !ME.name.trim();
+  if (invitado){
+    $('#wel-title').textContent = 'Te invitaron a un chat';
+    $('#wel-lead').textContent = 'Es una conversación directa entre los dos navegadores. Poné tu nombre y seguimos.';
+    $('#wel-h2').textContent = '¿Cómo te llamás?';
+    $('#wel-go').textContent = 'Unirme al chat';
+  }
+  show('welcome');
+  setTimeout(() => $('#wel-name').focus(), 150);
+}
+$('#wel-name').addEventListener('input', e => {
+  $('#wel-go').disabled = !e.target.value.trim();
+});
+$('#wel-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.value.trim()) $('#wel-go').click();
+});
+$('#wel-go').addEventListener('click', async () => {
+  ME.name = $('#wel-name').value.trim().slice(0, 24);
+  saveIdentityName();
+  $('#myname').value = ME.name;
+  $('#me-av').textContent = initial(ME.name);
+  localStorage.setItem('zh:onboarded', '1');
+  goHome();
+  await openFromHash();
+});
+
 /* ───────────── Arranque ───────────── */
 (async function boot(){
   applyTheme(localStorage.getItem('zh:theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
@@ -2401,7 +2497,24 @@ window.addEventListener('beforeunload', e => {
   wipeDiskFiles();
   refreshFmt();
   renderList();
-  await openFromHash();
+
+  // los botones de ícono ya traen title: que también lo lean los lectores
+  $$('[title]').forEach(el => { if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', el.title); });
+
+  // el teclado en pantalla tapaba el compositor en iOS
+  if (window.visualViewport){
+    const fit = () => document.documentElement.style.setProperty('--vph', visualViewport.height + 'px');
+    visualViewport.addEventListener('resize', fit);
+    visualViewport.addEventListener('scroll', fit);
+    fit();
+  }
+
+  if (needsWelcome()) prepWelcome();
+  else await openFromHash();
+
+  // instalable y con respaldo offline (solo servida por http/https)
+  if ('serviceWorker' in navigator && canLink())
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
 })();
 </script>
 </body>

@@ -1,8 +1,18 @@
 # ZeroHop
 
-Chat privado **navegador a navegador**, sin servidor intermedio. Todo vive en un único
-archivo: `index.html`. Se puede abrir con doble clic, servir desde cualquier hosting
-estático o mandar el archivo por mail.
+Chat privado **navegador a navegador**, sin servidor intermedio.
+
+**`index.html` es autosuficiente**: se puede abrir con doble clic, mandar por mail o servir
+desde cualquier hosting estático, y funciona solo. Los otros archivos del repo son extras de
+la versión publicada: `manifest.json`, `sw.js` y los iconos la vuelven instalable como app, y
+`tests/` con `tools/` son el desarrollo. Si te llevás solo el HTML, no perdés nada del chat.
+
+## Primer uso
+
+La primera vez la app te pide tu nombre y te explica en tres puntos qué es: que los mensajes
+van directo entre navegadores, que **los dos tienen que estar con la app abierta al mismo
+tiempo** —es una línea, no un buzón— y que para empezar se pasa un link. Ahí mismo podés
+activar los avisos. A quien llega por una invitación le habla de eso en vez del pitch.
 
 ## Cómo se usa
 
@@ -184,6 +194,20 @@ verificada y detección de impostores, varias conversaciones en paralelo, links 
 de WhatsApp, y el escenario VPN con candidato manual. Corren también en CI
 (`.github/workflows/test.yml`) en cada push.
 
+## Instalable como app (PWA)
+
+Servida por http(s), ZeroHop se instala en la pantalla de inicio o en el dock: ventana
+propia, ícono, y el service worker guarda el shell para que abra sin conexión. En celular la
+diferencia es grande, porque una pestaña común se descarta cuando el sistema necesita
+memoria.
+
+Eso **no** agrega servidor a la conversación: el service worker solo sirve los archivos de la
+app desde el cache. Los mensajes siguen yendo por WebRTC de un navegador al otro.
+
+La estrategia es **red primero, cache como respaldo**: si publicás una versión nueva, la
+próxima vez que se abra ya la toma; el cache solo entra cuando no hay conexión. Abierta como
+`file://` no se registra nada.
+
 ## Avisos
 
 En *Ajustes → Avisos* hay dos interruptores, los dos apagables:
@@ -193,6 +217,10 @@ En *Ajustes → Avisos* hay dos interruptores, los dos apagables:
   con el nombre y el texto, y al tocarla se abre esa conversación. El navegador pide permiso
   la primera vez; si lo niega, la app te lo dice en vez de fallar en silencio.
 - **Sonido**: un tono corto generado con Web Audio. No descarga ningún archivo.
+
+Cuando un contacto está sin conexión, además de *Reinvitar* aparece **Avisarle**: abre
+WhatsApp con un "¿te conectás a ZeroHop?" y el link de la app. Es la vuelta práctica a la
+limitación de que los dos tienen que estar presentes.
 
 Esto funciona **mientras ZeroHop esté abierto**, aunque la pestaña esté de fondo. No hay
 servidor de notificaciones: si cerrás el navegador, nadie te puede despertar.
@@ -242,6 +270,15 @@ robársela.
   aparecen mensajes duplicados.
 - Los archivos que fallan o son rechazados también se pueden reintentar, sin volver a
   elegirlos del disco.
+
+## Accesibilidad y mobile
+
+- Los mensajes entrantes se anuncian por una región `aria-live`, así un lector de pantalla
+  los lee sin que haya que buscar el foco.
+- Todos los botones de ícono tienen `aria-label`.
+- El alto de la app sigue al `visualViewport`, así el teclado en pantalla no tapa el
+  compositor (el problema clásico de Safari en iOS).
+- Layout verificado a 360 px de ancho: sin desborde horizontal.
 
 ## Compatibilidad
 

@@ -1,0 +1,17 @@
+{
+  "name": "ZeroHop · chat sin servidor",
+  "short_name": "ZeroHop",
+  "description": "Chat directo entre dos navegadores por WebRTC. Sin servidor intermedio, sin cuentas y sin historial.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f0e6e6",
+  "theme_color": "#b71c1c",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

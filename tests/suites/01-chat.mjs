@@ -47,5 +47,16 @@ export default {
     await A.click('#mi-clear');
     await A.waitForTimeout(200);
     t.ok((await A.$$('.row')).length === 0, 'vaciar pantalla borra las burbujas');
+
+    // cortar la conexión a mano deja constancia en los dos lados
+    await A.evaluate(() => { window.confirm = () => true; });
+    await A.click('#btn-menu');
+    await A.click('#mi-hang');
+    await A.waitForTimeout(700);
+    t.ok((await A.$$eval('.sys', ns => ns.map(n => n.textContent))).some(x => /Cortaste/.test(x)),
+      'al cortar a mano queda el aviso en tu chat');
+    t.ok((await B.$$eval('.sys', ns => ns.map(n => n.textContent))).some(x => /cerró la conversación/.test(x)),
+      'y el otro lado se entera de que cortaste');
+    t.ok(!(await A.isVisible('#composer')), 'y el compositor se oculta');
   }
 };

@@ -29,13 +29,20 @@ export async function newUser(env, name, opts = {}){
       e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`.trim()));
   });
   await page.goto(env.url);
-  await page.click('#btn-home-menu');
-  await page.click('#mi-settings');
-  await page.fill('#myname', name);
-  if (opts.phone) await page.fill('#myphone', opts.phone);
-  if (opts.noStun) await page.click('#tgl-stun');
-  if (opts.manualIp){ await page.click('#adv summary'); await page.fill('#vpn-ip', opts.manualIp); }
-  await page.click('#settings [data-home]');
+  // primer uso: nombre y adentro
+  if (await page.isVisible('#welcome')){
+    await page.fill('#wel-name', name);
+    await page.click('#wel-go');
+    await page.waitForSelector('#home:not([hidden])', { timeout: 10000 });
+  }
+  if (opts.phone || opts.noStun || opts.manualIp){
+    await page.click('#btn-home-menu');
+    await page.click('#mi-settings');
+    if (opts.phone) await page.fill('#myphone', opts.phone);
+    if (opts.noStun) await page.click('#tgl-stun');
+    if (opts.manualIp){ await page.click('#adv summary'); await page.fill('#vpn-ip', opts.manualIp); }
+    await page.click('#settings [data-home]');
+  }
   return page;
 }
 
@@ -70,7 +77,14 @@ export async function connectByLink(A, B, reinvite = false){
   await A.waitForSelector('#offer-out:not([hidden])', { timeout: 25000 });
   await A.evaluate(() => { fmtLink = true; refreshFmt(); });   // por si quedó en "código suelto"
   const link = await A.inputValue('#offer-out');
-  await B.goto(link);
+  if (/^https?:/.test(link)){
+    await B.goto(link);                       // servida por web: se abre el link
+  } else {
+    await B.click('#btn-home-menu');          // abierta como archivo: no hay links
+    await B.click('#mi-join');
+    await B.fill('#offer-in', link);
+    await B.click('#btn-make-answer');
+  }
   await B.waitForSelector('#guest-step2:not([hidden])', { timeout: 25000 });
   await A.fill('#answer-in', await B.inputValue('#answer-out'));
   await A.click('#btn-connect-host');
