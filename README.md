@@ -184,6 +184,46 @@ verificada y detección de impostores, varias conversaciones en paralelo, links 
 de WhatsApp, y el escenario VPN con candidato manual. Corren también en CI
 (`.github/workflows/test.yml`) en cada push.
 
+## Avisos
+
+En *Ajustes → Avisos* hay dos interruptores, los dos apagables:
+
+- **Avisos del sistema**: cuando llega un mensaje que no está a la vista —otra
+  conversación abierta, o la ventana en segundo plano— salta la notificación del sistema
+  con el nombre y el texto, y al tocarla se abre esa conversación. El navegador pide permiso
+  la primera vez; si lo niega, la app te lo dice en vez de fallar en silencio.
+- **Sonido**: un tono corto generado con Web Audio. No descarga ningún archivo.
+
+Esto funciona **mientras ZeroHop esté abierto**, aunque la pestaña esté de fondo. No hay
+servidor de notificaciones: si cerrás el navegador, nadie te puede despertar.
+
+Al entrar a una conversación con mensajes sin leer aparece un divisor **MENSAJES NUEVOS**
+en el punto donde quedaste.
+
+## Content-Security-Policy
+
+La página declara un CSP estricto: `default-src 'none'` y el script inline habilitado
+**por su hash**. Eso significa que no puede cargarse nada externo, y que un `<script>`
+inyectado o un `onerror=` que se colara en un mensaje **no se ejecutan**.
+
+El precio es que el hash hay que mantenerlo sincronizado con el script:
+
+```bash
+npm run csp          # recalcula y escribe el hash en el meta
+npm run csp:check    # falla si quedó desincronizado
+```
+
+La verificación corre en los tests y también antes de publicar en Pages, así un hash viejo
+no puede dejar la página rota en producción.
+
+## Tu clave privada
+
+La clave de identidad se genera **no extraíble** y vive en IndexedDB como `CryptoKey`: ni la
+propia página puede exportarla. Si ya tenías una identidad guardada como JWK en
+`localStorage`, se migra sola en el primer arranque —conservando tu ID— y la copia vieja se
+borra. Un atacante que lograra ejecutar código en la página podría hacerla firmar, pero no
+robársela.
+
 ## Límites de los archivos
 
 - Hasta **64 MB** el archivo recibido se arma en memoria, que es lo más rápido.

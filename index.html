@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<!-- El script inline se permite por su hash: nada externo puede cargarse y un
+     script inyectado no corre. Si editás el script, corré: npm run csp -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LhwIPLbK5XQc1629B6ZXo9/GzAF1n8WPiS1qW6B3qVs='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src blob:; base-uri 'none'; form-action 'none'">
 <title>ZeroHop · Chat P2P sin servidor</title>
 <meta name="description" content="Chat privado navegador a navegador con WebRTC. Sin servidor intermedio, sin cuentas, sin historial.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23d32f2f'/><path d='M25 32h50v30H46l-13 12V62H25z' fill='white'/></svg>">
@@ -300,6 +303,7 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 }
 .day{align-self:center;background:var(--panel);color:var(--text-soft);font-size:11.5px;padding:5px 12px;
   border-radius:99px;margin:10px 0 8px;box-shadow:var(--shadow)}
+.day.new{background:var(--accent);color:#fff;font-weight:700;letter-spacing:.6px;box-shadow:none}
 .sys{align-self:center;background:var(--panel);color:var(--text-soft);font-size:12px;padding:7px 13px;
   border-radius:12px;margin:6px 0;box-shadow:var(--shadow);text-align:center;max-width:86%;line-height:1.45}
 .sys b{color:var(--accent)}
@@ -621,6 +625,25 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
     </div>
 
     <div class="card">
+      <h2>Avisos</h2>
+      <p class="sub">Para enterarte de un mensaje con la ventana atrás. Funciona mientras ZeroHop esté abierto: no hay servidor de notificaciones.</p>
+      <div class="switch">
+        <div>
+          <label for="tgl-notify" style="font-weight:600">Avisos del sistema</label>
+          <small>Muestra quién te escribió y qué dijo. El navegador te va a pedir permiso.</small>
+        </div>
+        <div class="tgl" id="tgl-notify" role="switch" aria-checked="false" tabindex="0"></div>
+      </div>
+      <div class="switch" style="margin-top:10px">
+        <div>
+          <label for="tgl-sound" style="font-weight:600">Sonido</label>
+          <small>Un tono corto, generado por la app. No descarga ningún archivo.</small>
+        </div>
+        <div class="tgl" id="tgl-sound" role="switch" aria-checked="true" tabindex="0"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Conexión</h2>
       <p class="sub">Cómo se busca la ruta entre los dos navegadores.</p>
       <div class="switch">
@@ -841,26 +864,67 @@ async function fpOfJwk(jwk){
   const h = await crypto.subtle.digest('SHA-256', raw);
   return [...new Uint8Array(h)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+/* La clave privada vive en IndexedDB como CryptoKey no extraíble: un XSS
+   podría hacerla firmar, pero no puede robársela. La pública sí se exporta,
+   porque viaja en cada invitación. */
+let idbConn = null;
+function idbOpen(){
+  if (idbConn) return idbConn;
+  idbConn = new Promise((res, rej) => {
+    const r = indexedDB.open('zerohop', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('keys');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return idbConn;
+}
+async function idbDo(mode, fn){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const req = fn(db.transaction('keys', mode).objectStore('keys'));
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+const idbGet   = k => idbDo('readonly',  st => st.get(k));
+const idbPut   = (k, v) => idbDo('readwrite', st => st.put(v, k));
+const idbClear = () => idbDo('readwrite', st => st.clear());
+
 async function loadIdentity(){
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem('zh:me') || 'null'); } catch {}
-  ME.name = (saved && saved.name) || localStorage.getItem('zh:name') || '';
-  ME.phone = (saved && saved.phone) || '';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('zh:me') || '{}') || {}; } catch {}
+  ME.name = saved.name || localStorage.getItem('zh:name') || '';
+  ME.phone = saved.phone || '';
   if (!self.crypto || !crypto.subtle){
-    ME.fp = saved && saved.fp ? saved.fp : 'sin-id-' + uid().slice(0, 6);
+    ME.fp = saved.fp || 'sin-id-' + uid().slice(0, 6);
     return;                                   // sin WebCrypto: seguimos, pero sin verificación
   }
   try {
-    if (saved && saved.pub && saved.privJwk){
-      ME.jwk = saved.pub;
-      ME.priv = await crypto.subtle.importKey('jwk', saved.privJwk, ECDSA, false, ['sign']);
-    } else {
-      const kp = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
-      ME.jwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
-      const privJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
-      ME.priv = kp.privateKey;
-      localStorage.setItem('zh:me', JSON.stringify({ name: ME.name, pub: ME.jwk, privJwk }));
+    let priv = null;
+    try { priv = await idbGet('priv'); } catch {}
+
+    // migración: la clave estaba como JWK en localStorage. La reimportamos sin
+    // permiso de exportación y borramos la copia, conservando tu identidad.
+    if (!priv && saved.privJwk){
+      priv = await crypto.subtle.importKey('jwk', saved.privJwk, ECDSA, false, ['sign']);
+      await idbPut('priv', priv);
+      delete saved.privJwk;
+      localStorage.setItem('zh:me', JSON.stringify(saved));
     }
+
+    if (!priv || !saved.pub){
+      let kp;
+      try { kp = await crypto.subtle.generateKey(ECDSA, false, ['sign', 'verify']); }
+      catch { kp = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']); }
+      priv = kp.privateKey;
+      saved.pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
+      delete saved.privJwk;
+      await idbPut('priv', priv);
+      localStorage.setItem('zh:me', JSON.stringify(saved));
+    }
+
+    ME.priv = priv;
+    ME.jwk = saved.pub;
     ME.fp = await fpOfJwk(ME.jwk);
     ME.ok = true;
   } catch (e){
@@ -921,7 +985,7 @@ function makeConv(id, name, jwk){
     status: 'offline',                 // offline | inviting | connecting | online
     localSdp: '', remoteSdp: '',
     msgs: [], unread: 0, unreadIds: new Set(),
-    lastTs: 0, preview: '', saved: false,
+    lastTs: 0, preview: '', saved: false, newFrom: null,
     verified: false, verifiedOnce: false, nonce: '',
     typing: false, typingSent: false, typingTimer: null,
     incoming: null, outQueue: Promise.resolve(), denied: new Set(),
@@ -1401,6 +1465,64 @@ function retryMsg(id){
   }
 }
 
+/* ───────────── Avisos: notificación del sistema y sonido ─────────────
+   Nada de esto necesita servidor: son APIs del navegador y solo funcionan
+   mientras la pestaña esté abierta (aunque esté de fondo). */
+const prefs = { notify: false, sound: true };
+function loadPrefs(){
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem('zh:prefs') || '{}')); } catch {}
+  if (!('Notification' in window) || Notification.permission !== 'granted') prefs.notify = false;
+  $('#tgl-notify').setAttribute('aria-checked', String(prefs.notify));
+  $('#tgl-sound').setAttribute('aria-checked', String(prefs.sound));
+}
+const savePrefs = () => localStorage.setItem('zh:prefs', JSON.stringify(prefs));
+
+let actx = null;
+function beep(){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime, g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.08, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    g.connect(actx.destination);
+    for (const [hz, delay] of [[880, 0], [1320, 0.09]]){
+      const o = actx.createOscillator();
+      o.type = 'sine'; o.frequency.value = hz;
+      o.connect(g); o.start(t + delay); o.stop(t + delay + 0.11);
+    }
+  } catch {}
+}
+
+// Avisa solo si el mensaje no está a la vista: otra conversación, o la ventana
+// en segundo plano.
+function alertNew(conv, m){
+  if (prefs.sound) beep();
+  if (!prefs.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(conv.name, {
+      body: (m.kind === 'file' ? '📎 ' + m.name : String(m.text || '')).slice(0, 140),
+      tag: 'zh:' + conv.id,
+      silent: true                       // el sonido lo hacemos nosotros
+    });
+    n.onclick = () => { try { window.focus(); } catch {} openChat(conv); n.close(); };
+  } catch {}
+}
+
+async function toggleNotify(){
+  if (prefs.notify){ prefs.notify = false; }
+  else {
+    if (!('Notification' in window)) return toast('Este navegador no soporta avisos del sistema');
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') return toast('El navegador bloqueó los avisos');
+    prefs.notify = true;
+  }
+  $('#tgl-notify').setAttribute('aria-checked', String(prefs.notify));
+  savePrefs();
+}
+
 /* ───────────── Mensajes: datos + render ───────────── */
 function addMsg(conv, m){
   m.state = m.state || (m.dir === 'out' ? 'sent' : '');
@@ -1408,13 +1530,16 @@ function addMsg(conv, m){
   conv.lastTs = m.ts;
   conv.preview = m.kind === 'file' ? '📎 ' + m.name : m.text;
   conv.saved = conv.saved || !conv.id.startsWith('tmp:');
+  const aLaVista = current === conv && document.hasFocus();
   if (current === conv){
     appendRow(conv, m);
     scrollDown(m.dir === 'out');
   } else if (m.dir === 'in'){
     conv.unread++;
+    if (!conv.newFrom) conv.newFrom = m.id;
     toast(`${conv.name}: ${conv.preview.slice(0, 60)}`, () => openChat(conv));
   }
+  if (m.dir === 'in' && !aLaVista) alertNew(conv, m);
   renderList();
   updateTitle();
   if (conv.saved) saveContacts();
@@ -1528,6 +1653,12 @@ function renderMessages(conv){
       d.className = 'day'; d.textContent = dayLabel(m.ts);
       box.appendChild(d);
     }
+    if (conv.newFrom && m.id === conv.newFrom){
+      const nuevo = document.createElement('div');
+      nuevo.className = 'day new'; nuevo.textContent = 'MENSAJES NUEVOS';
+      box.appendChild(nuevo);
+      conv.lastDir = null;
+    }
     box.appendChild(rowFor(conv, m));
   }
   if (conv.typing) showTypingRow();
@@ -1623,6 +1754,7 @@ function openChat(conv){
   paintPeer(conv);
   paintChatState(conv);
   renderMessages(conv);
+  conv.newFrom = null;                   // el divisor se muestra una sola vez
   flushRead();
   updateTitle();
   renderList();
@@ -2207,7 +2339,8 @@ $('#btn-wipe').addEventListener('click', () => {
   localStorage.removeItem('zh:me');
   localStorage.removeItem('zh:contacts');
   localStorage.removeItem('zh:name');
-  location.reload();
+  localStorage.removeItem('zh:prefs');
+  idbClear().catch(() => {}).then(() => location.reload());
 });
 $('#vpn-ip').addEventListener('input', e => {
   const v = e.target.value.trim();
@@ -2218,6 +2351,16 @@ $('#vpn-ip').addEventListener('input', e => {
 $('#turn-url').addEventListener('input', e => { net.turn.url = e.target.value.trim(); saveNet(); });
 $('#turn-user').addEventListener('input', e => { net.turn.user = e.target.value; saveNet(); });
 $('#turn-pass').addEventListener('input', e => { net.turn.pass = e.target.value; saveNet(); });
+$('#tgl-notify').addEventListener('click', toggleNotify);
+$('#tgl-notify').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleNotify(); } });
+function toggleSound(){
+  prefs.sound = !prefs.sound;
+  $('#tgl-sound').setAttribute('aria-checked', String(prefs.sound));
+  savePrefs();
+  if (prefs.sound) beep();               // de paso, el gesto habilita el audio
+}
+$('#tgl-sound').addEventListener('click', toggleSound);
+$('#tgl-sound').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggleSound(); } });
 bindToggle('#tgl-stun', () => net.useStun, v => net.useStun = v);
 bindToggle('#tgl-relay', () => net.forceRelay, v => {
   if (v && !net.turn.url) return toast('Configurá primero un servidor TURN');
@@ -2253,6 +2396,7 @@ window.addEventListener('beforeunload', e => {
   $('#me-av').textContent = initial(ME.name);
   $('#my-id').textContent = prettyId(ME.fp);
   loadNet();
+  loadPrefs();
   loadContacts();
   wipeDiskFiles();
   refreshFmt();

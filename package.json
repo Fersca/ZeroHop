@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "node tests/run.mjs",
+    "csp": "node tools/csp.mjs",
+    "csp:check": "node tools/csp.mjs --check",
     "serve": "node -e \"import('node:http').then(({default:h})=>import('node:fs').then(({default:f})=>h.createServer((q,s)=>{try{s.end(f.readFileSync('.'+(q.url==='/'?'/index.html':q.url)))}catch{s.writeHead(404).end()}}).listen(8899,()=>console.log('http://127.0.0.1:8899/index.html'))))\""
   },
   "devDependencies": {

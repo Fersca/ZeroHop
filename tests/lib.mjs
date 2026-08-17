@@ -22,6 +22,12 @@ export async function newUser(env, name, opts = {}){
   page.on('console', m => {
     if (m.type() === 'error' && !m.text().includes('404')) env.jsErrors.push(`${name} console: ${m.text()}`);
   });
+  // se instala antes que los scripts de la página
+  await page.addInitScript(() => {
+    window.__csp = [];
+    document.addEventListener('securitypolicyviolation',
+      e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`.trim()));
+  });
   await page.goto(env.url);
   await page.click('#btn-home-menu');
   await page.click('#mi-settings');
@@ -89,3 +95,6 @@ export async function lastIn(page){
   const all = await page.$$eval('.row.in .bubble', ns => ns.map(n => n.innerText));
   return (all.pop() || '').split('\n').slice(1).join('\n') || all.pop() || '';
 }
+
+/** Violaciones de CSP registradas en esa pestaña (necesita newUser). */
+export const cspViolations = page => page.evaluate(() => window.__csp || []);

@@ -24,7 +24,8 @@ const SUITES = [
   '04-agenda.mjs',
   '05-multi.mjs',
   '06-links.mjs',
-  '07-vpn.mjs'
+  '07-vpn.mjs',
+  '08-csp.mjs'
 ];
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.md': 'text/plain; charset=utf-8' };
