@@ -6,17 +6,37 @@ estático o mandar el archivo por mail.
 
 ## Cómo se usa
 
-1. **Persona A** abre `index.html`, pone su nombre y toca **Crear invitación**.
-   La app genera un código (una línea de texto que empieza con `ZH1…`).
-2. A le pasa ese código a **Persona B** por el medio que quiera: WhatsApp, mail, Signal,
-   un papel. ZeroHop no lo envía a ningún lado.
-3. **B** abre el mismo archivo, toca **Tengo un código de invitación**, lo pega y genera
-   su **código de respuesta**.
-4. B le devuelve la respuesta a A, que la pega y toca **Conectar**.
-5. Se abre el chat. De ahí en más los mensajes van directo de un navegador al otro.
+1. **Persona A** abre la página, pone su nombre y toca **Crear invitación**.
+   Sale un **link** para compartir.
+2. A le manda el link a **Persona B** por donde quiera: WhatsApp, mail, Signal, un papel.
+   ZeroHop no lo envía a ningún lado.
+3. **B abre el link**: la app ya lo reconoce, le pide el nombre y genera el
+   **link de respuesta**.
+4. B se lo devuelve a A. Si A lo abre en el mismo navegador donde creó la invitación,
+   **el chat se conecta solo**; si no, lo pega en el paso 2 de su pestaña.
+5. De ahí en más los mensajes van directo de un navegador al otro.
+
+Con el botón **Ver código suelto** se cambia el link por el código pelado (`ZH1…`), útil
+si la otra persona abre el archivo HTML local en vez de la página. Los dos campos aceptan
+tanto el link completo como el código.
 
 Los códigos son el SDP de WebRTC comprimido con `deflate-raw` y codificado en base64url
 (~600 caracteres). Solo sirven para esa conexión: al recargar la página dejan de valer.
+
+### Publicado como página web
+
+El repo se publica con GitHub Pages (`.github/workflows/pages.yml`), así que se entra
+directo por la URL sin bajar nada. Eso **no** agrega un servidor a la conversación:
+
+- El invite viaja en el **fragmento** del link (después del `#`), y los navegadores
+  **nunca mandan el fragmento al servidor** en un pedido HTTP. GitHub sirve el HTML y
+  no ve las invitaciones ni puede reconstruirlas.
+- Los mensajes siguen yendo por WebRTC de un navegador al otro.
+- Lo que GitHub sí ve, como cualquier hosting, es que alguien descargó la página.
+
+Al abrir un link, ZeroHop limpia el `#` de la barra de direcciones para que el código no
+quede a la vista ni en el historial de esa pestaña. Igual, el link queda en el chat por
+donde lo mandaste: tratalo como lo que es, la llave de esa conversación.
 
 ## Qué tiene
 

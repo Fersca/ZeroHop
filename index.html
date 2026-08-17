@@ -463,25 +463,27 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
     <!-- Anfitrión -->
     <div class="card" id="card-host" hidden>
       <div class="steps"><div class="step on" id="hs1"></div><div class="step" id="hs2"></div></div>
-      <h2>Paso 1 · Pasale este código</h2>
-      <p class="sub">Copialo y mandáselo a la otra persona por el medio que quieras.</p>
+      <h2 id="host-h2">Paso 1 · Pasale este link</h2>
+      <p class="sub" id="host-sub">Mandáselo a la otra persona. Cuando lo abra, se une al chat sin tener que copiar nada.</p>
 
       <div class="codebox">
         <div id="host-wait" class="note" style="margin-bottom:10px">
           <div class="spinner dark"></div>
-          <div>Generando tu código de invitación… (unos segundos)</div>
+          <div>Generando tu invitación… (unos segundos)</div>
         </div>
         <textarea class="code-area" id="offer-out" readonly rows="5" hidden placeholder="…"></textarea>
         <div class="copy-row" id="offer-actions" hidden>
           <button class="btn btn-primary btn-sm" data-copy="#offer-out">
             <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-            Copiar código
+            <span data-copy-label>Copiar link</span>
           </button>
           <button class="btn btn-ghost btn-sm" data-share="#offer-out">
             <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
             Compartir
           </button>
+          <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
         </div>
+        <div class="hint" id="offer-hint">La invitación viaja en la parte del link que va después del <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: ni GitHub ni nadie que aloje la página la ve.</div>
       </div>
 
       <div class="field" style="margin-top:20px">
@@ -496,8 +498,13 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
     <!-- Invitado -->
     <div class="card" id="card-guest" hidden>
       <div class="steps"><div class="step on" id="gs1"></div><div class="step" id="gs2"></div></div>
-      <h2>Paso 1 · Pegá la invitación</h2>
-      <p class="sub">Pegá el código que te pasaron y generá tu respuesta.</p>
+      <h2 id="guest-h2">Paso 1 · Pegá la invitación</h2>
+      <p class="sub" id="guest-sub">Pegá el link o el código que te pasaron y generá tu respuesta.</p>
+
+      <div class="field" id="guest-name-field" hidden>
+        <label class="lbl" for="myname2">Tu nombre</label>
+        <input class="input" id="myname2" maxlength="24" placeholder="¿Cómo te ven?" autocomplete="nickname">
+      </div>
 
       <div class="field">
         <textarea class="code-area" id="offer-in" rows="5" placeholder="Pegá el código de invitación…" spellcheck="false"></textarea>
@@ -506,24 +513,45 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
       <button class="btn btn-primary" id="btn-make-answer" disabled>Generar respuesta</button>
 
       <div id="guest-step2" hidden style="margin-top:20px">
-        <div class="step-label"><span class="step-num">2</span> Devolvele este código y esperá</div>
+        <div class="step-label"><span class="step-num">2</span> Devolvele esta respuesta y esperá</div>
         <textarea class="code-area" id="answer-out" readonly rows="5"></textarea>
         <div class="copy-row">
           <button class="btn btn-primary btn-sm" data-copy="#answer-out">
             <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-            Copiar respuesta
+            <span data-copy-label>Copiar link</span>
           </button>
           <button class="btn btn-ghost btn-sm" data-share="#answer-out">
             <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
             Compartir
           </button>
+          <button class="btn btn-ghost btn-sm" data-fmt="#answer-out">Ver código suelto</button>
         </div>
         <div class="note" style="margin-top:12px">
           <div class="spinner dark"></div>
-          <div>Cuando la otra persona lo pegue, el chat se abre solo.</div>
+          <div>Cuando la otra persona lo reciba, el chat se abre solo.</div>
         </div>
       </div>
       <div class="copy-row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-back>Volver</button></div>
+    </div>
+
+    <!-- Se abrió un link de respuesta (#r=) en una pestaña que no es la que invitó -->
+    <div class="card" id="card-answer" hidden>
+      <h2 id="relay-h2">Respuesta recibida</h2>
+      <p class="sub" id="relay-sub">…</p>
+      <div id="relay-ok" class="note" hidden>
+        <div class="spinner dark"></div>
+        <div>Volvé a la pestaña donde creaste la invitación: el chat se está abriendo ahí.</div>
+      </div>
+      <div id="relay-manual" hidden>
+        <textarea class="code-area" id="relay-out" readonly rows="5"></textarea>
+        <div class="copy-row">
+          <button class="btn btn-primary btn-sm" data-copy="#relay-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            Copiar respuesta
+          </button>
+        </div>
+      </div>
+      <div class="copy-row" style="margin-top:14px"><button class="btn btn-ghost btn-sm" data-back>Ir al inicio</button></div>
     </div>
 
     <div class="foot">
@@ -699,8 +727,16 @@ async function pack(kind, sdp){
   return 'ZH0' + b64u.enc(raw);
 }
 
+// Acepta tanto el código suelto como un link completo que lo lleve en el #.
+const CODE_RE = /ZH[01][A-Za-z0-9_-]{16,}/;
+function extractCode(txt){
+  const flat = (txt || '').trim().replace(/\s+/g, '');
+  const m = CODE_RE.exec(flat);
+  return m ? m[0] : flat;
+}
+
 async function unpack(code){
-  const clean = (code || '').trim().replace(/\s+/g, '');
+  const clean = extractCode(code);
   if (!clean) throw new Error('El código está vacío.');
   const tag = clean.slice(0, 3), body = clean.slice(3);
   if (tag !== 'ZH1' && tag !== 'ZH0') throw new Error('Eso no parece un código de ZeroHop.');
@@ -1185,6 +1221,11 @@ function resetAll(){
   $('#offer-in').value = ''; $('#answer-out').value = '';
   $('#offer-out').hidden = true; $('#offer-actions').hidden = true; $('#host-wait').style.display = '';
   $('#guest-step2').hidden = true;
+  $('#guest-name-field').hidden = true;
+  $('#guest-h2').textContent = 'Paso 1 · Pegá la invitación';
+  $('#guest-sub').textContent = 'Pegá el link o el código que te pasaron y generá tu respuesta.';
+  $('#btn-make-answer').innerHTML = 'Generar respuesta';
+  $('#btn-connect-host').innerHTML = 'Conectar';
   $('#btn-connect-host').disabled = true;
   $('#btn-make-answer').disabled = true;
   $('#hs2').classList.remove('on'); $('#gs2').classList.remove('on');
@@ -1194,21 +1235,112 @@ function resetAll(){
 }
 
 function card(which){
-  $('#card-role').hidden  = which !== 'role';
-  $('#card-host').hidden  = which !== 'host';
-  $('#card-guest').hidden = which !== 'guest';
+  $('#card-role').hidden   = which !== 'role';
+  $('#card-host').hidden   = which !== 'host';
+  $('#card-guest').hidden  = which !== 'guest';
+  $('#card-answer').hidden = which !== 'answer';
 }
 
 function showErr(sel, msg){ const e = $(sel); e.textContent = msg; e.classList.add('show'); }
 function hideErr(sel){ $(sel).classList.remove('show'); }
 
+/* ───────────── Invitaciones como link ─────────────
+   El código va en el fragmento (#i=… / #r=…). El fragmento nunca se manda al
+   servidor en un pedido HTTP, así que quien alója la página —GitHub Pages o
+   quien sea— no ve las invitaciones ni puede reconstruir la conversación. */
+const canLink = () => location.protocol === 'http:' || location.protocol === 'https:';
+const linkFor = (kind, code) => location.origin + location.pathname + '#' + kind + '=' + code;
+let fmtLink = true;
+
+function setShare(sel, kind, code){
+  const el = $(sel);
+  el.dataset.code = code;
+  el.dataset.kind = kind;
+  refreshFmt();
+}
+function refreshFmt(){
+  const useLink = fmtLink && canLink();
+  $$('[data-code]').forEach(el => {
+    el.value = useLink ? linkFor(el.dataset.kind, el.dataset.code) : el.dataset.code;
+    el.rows = useLink ? 3 : 5;
+  });
+  $$('[data-copy-label]').forEach(s => s.textContent = useLink ? 'Copiar link' : 'Copiar código');
+  $$('[data-fmt]').forEach(b => { b.textContent = useLink ? 'Ver código suelto' : 'Ver link'; b.hidden = !canLink(); });
+  const h = $('#offer-hint');
+  if (h) h.innerHTML = useLink
+    ? 'La invitación viaja en la parte del link posterior al <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: quien aloja la página no la ve.'
+    : 'Código suelto, por si la otra persona abre el archivo HTML en su máquina en vez de la página web.';
+}
+$$('[data-fmt]').forEach(b => b.addEventListener('click', () => { fmtLink = !fmtLink; refreshFmt(); }));
+
+let bc = null;
+try { bc = new BroadcastChannel('zerohop'); } catch {}
+
+/* Si el que invitó abre el link de respuesta, se abre en una pestaña nueva y
+   el RTCPeerConnection original queda en la otra. En vez de perderlo, la
+   pestaña nueva le pasa la respuesta por BroadcastChannel (mismo navegador,
+   mismo origen) y la original conecta sola. */
+function listenAnswers(){
+  if (!bc) return;
+  bc.onmessage = ev => {
+    const m = ev.data;
+    if (m && m.t === 'answer' && S.role === 'host' && S.pc && !S.connected){
+      bc.postMessage({ t: 'taken' });
+      connectAsHost(m.code);
+    }
+  };
+}
+
+function showRelay(handedOver){
+  $('#relay-ok').hidden = !handedOver;
+  $('#relay-manual').hidden = handedOver;
+  $('#relay-sub').textContent = handedOver
+    ? 'Se la pasé a la pestaña donde creaste la invitación.'
+    : 'No encontré la pestaña donde creaste la invitación. Copiá esta respuesta y pegala ahí, en el paso 2.';
+}
+
+async function openFromHash(){
+  const m = /^#(i|r)=(.+)$/.exec(location.hash || '');
+  if (!m) return;
+  const kind = m[1], code = extractCode(decodeURIComponent(m[2]));
+  history.replaceState(null, '', location.pathname + location.search);
+  if (kind === 'i'){
+    card('guest');
+    $('#guest-name-field').hidden = false;
+    $('#guest-h2').textContent = 'Te invitaron a un chat';
+    $('#guest-sub').textContent = 'Poné tu nombre y devolvele la respuesta a quien te invitó. Nada de esto pasa por un servidor.';
+    $('#offer-in').value = code;
+    $('#btn-make-answer').disabled = false;
+    await makeAnswer(code);
+    $('#myname2').focus();
+  } else {
+    if (S.role === 'host' && S.pc && !S.connected) return connectAsHost(code);
+    card('answer');
+    $('#relay-out').value = code;
+    if (bc){
+      let acked = false;
+      bc.onmessage = ev => { if (ev.data && ev.data.t === 'taken'){ acked = true; showRelay(true); } };
+      bc.postMessage({ t: 'answer', code });
+      setTimeout(() => { if (!acked) showRelay(false); }, 1500);
+    } else showRelay(false);
+  }
+}
+window.addEventListener('hashchange', openFromHash);
+
 /* ───────────── Eventos: setup ───────────── */
-$('#myname').value = localStorage.getItem('zh:name') || '';
-$('#myname').addEventListener('input', e => {
-  S.me = e.target.value.trim() || 'Anónimo';
-  localStorage.setItem('zh:name', e.target.value.trim());
-});
-S.me = ($('#myname').value.trim() || 'Anónimo');
+const savedName = localStorage.getItem('zh:name') || '';
+$('#myname').value = savedName;
+$('#myname2').value = savedName;
+S.me = savedName.trim() || 'Anónimo';
+function onNameInput(e){
+  const v = e.target.value.trim();
+  S.me = v || 'Anónimo';
+  localStorage.setItem('zh:name', v);
+  ($('#myname') === e.target ? $('#myname2') : $('#myname')).value = e.target.value;
+  if (S.connected) send({ t: 'hi', name: S.me });   // ya conectados: avisamos el cambio
+}
+$('#myname').addEventListener('input', onNameInput);
+$('#myname2').addEventListener('input', onNameInput);
 
 const tgl = $('#tgl-stun');
 function toggleStun(){
@@ -1264,10 +1396,11 @@ $('#btn-host').addEventListener('click', async () => {
   try {
     const code = await startHost();
     $('#host-wait').style.display = 'none';
-    const out = $('#offer-out');
-    out.hidden = false; out.value = code;
+    $('#offer-out').hidden = false;
+    setShare('#offer-out', 'i', code);
     $('#offer-actions').hidden = false;
     $('#hs2').classList.add('on');
+    listenAnswers();
   } catch (e){
     $('#host-wait').style.display = 'none';
     showErr('#host-err', 'No se pudo crear la invitación: ' + e.message);
@@ -1283,13 +1416,14 @@ $('#answer-in').addEventListener('input', e => {
   hideErr('#host-err');
 });
 
-$('#btn-connect-host').addEventListener('click', async () => {
+async function connectAsHost(raw){
   const btn = $('#btn-connect-host');
+  card('host');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Conectando…';
   hideErr('#host-err');
   try {
-    await hostAccept($('#answer-in').value);
+    await hostAccept(raw);
     setTimeout(() => {
       if (!S.connected){
         btn.disabled = false; btn.textContent = 'Conectar';
@@ -1300,21 +1434,22 @@ $('#btn-connect-host').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = 'Conectar';
     showErr('#host-err', e.message);
   }
-});
+}
+$('#btn-connect-host').addEventListener('click', () => connectAsHost($('#answer-in').value));
 
 $('#offer-in').addEventListener('input', e => {
   $('#btn-make-answer').disabled = e.target.value.trim().length < 10;
   hideErr('#guest-err');
 });
 
-$('#btn-make-answer').addEventListener('click', async () => {
+async function makeAnswer(raw){
   const btn = $('#btn-make-answer');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Generando…';
   hideErr('#guest-err');
   try {
-    const code = await startGuest($('#offer-in').value);
-    $('#answer-out').value = code;
+    const code = await startGuest(raw);
+    setShare('#answer-out', 'r', code);
     $('#guest-step2').hidden = false;
     $('#gs2').classList.add('on');
     btn.innerHTML = 'Respuesta generada';
@@ -1323,7 +1458,8 @@ $('#btn-make-answer').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = 'Generar respuesta';
     showErr('#guest-err', e.message);
   }
-});
+}
+$('#btn-make-answer').addEventListener('click', () => makeAnswer($('#offer-in').value));
 
 /* Copiar / compartir */
 async function copyText(txt){
@@ -1446,6 +1582,10 @@ function flushRead(){
 }
 window.addEventListener('focus', flushRead);
 $('#msgs').addEventListener('scroll', flushRead);
+
+/* Si llegamos con un link de invitación o de respuesta, arrancamos ahí */
+refreshFmt();
+openFromHash();
 
 /* Aviso al cerrar con chat abierto */
 window.addEventListener('beforeunload', e => {
