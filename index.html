@@ -342,6 +342,9 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .row.out .att .dl,.row.out .att .sz{color:inherit;opacity:.78}
 .row.out .bar i{background:currentColor}
 :root[data-theme="dark"] .row.out .att .ic{background:rgba(255,255,255,.18)}
+.bubble.bad{box-shadow:inset 0 0 0 1.5px var(--danger),var(--shadow)}
+.prob{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--danger);font-weight:600;clear:both}
+.prob button{font-size:12px;font-weight:700;color:var(--danger);text-decoration:underline;padding:0}
 .bar{height:3px;background:rgba(0,0,0,.12);border-radius:99px;overflow:hidden;margin-top:7px}
 .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .18s ease}
 .bubble img.photo{max-width:100%;border-radius:9px;display:block;margin-bottom:3px;cursor:zoom-in}
@@ -772,6 +775,8 @@ const ENTRY_URL = location.href;
 
 const CHUNK = 16 * 1024;
 const HIGH_WATER = 1024 * 1024;
+const RAM_LIMIT  = 64 * 1024 * 1024;          // hasta acá, en memoria
+const HARD_LIMIT = 2 * 1024 * 1024 * 1024;    // más que esto se rechaza
 const ECDSA = { name: 'ECDSA', namedCurve: 'P-256' };
 const SIGN  = { name: 'ECDSA', hash: 'SHA-256' };
 
@@ -919,7 +924,7 @@ function makeConv(id, name, jwk){
     lastTs: 0, preview: '', saved: false,
     verified: false, verifiedOnce: false, nonce: '',
     typing: false, typingSent: false, typingTimer: null,
-    incoming: null, outQueue: Promise.resolve(),
+    incoming: null, outQueue: Promise.resolve(), denied: new Set(),
     lastDir: null, lastDay: null
   };
   convs.set(id, conv);
@@ -1244,14 +1249,30 @@ async function onData(conv, ev){
     case 'typing':
       setTyping(conv, !!m.v);
       break;
-    case 'fmeta':
+    case 'fmeta': {
       setTyping(conv, false);
-      conv.incoming = { id: m.id, name: clean(m.name) || 'archivo', size: +m.size || 0, mime: m.mime || '', chunks: [], got: 0 };
-      addMsg(conv, { id: m.id, dir: 'in', kind: 'file', name: conv.incoming.name, size: conv.incoming.size,
-                     mime: conv.incoming.mime, ts: m.ts || Date.now(), progress: 0 });
+      const name = clean(m.name) || 'archivo', size = +m.size || 0, mime = m.mime || '';
+      addMsg(conv, { id: m.id, dir: 'in', kind: 'file', name, size, mime, ts: m.ts || Date.now(), progress: 0 });
+      if (size > HARD_LIMIT){
+        rawSend(conv, { t: 'fdeny', id: m.id, why: 'supera ' + humanSize(HARD_LIMIT) });
+        patchMsg(conv, m.id, { problem: 'Rechazado: supera el límite de ' + humanSize(HARD_LIMIT) });
+        break;
+      }
+      // el sink se resuelve en paralelo: los chunks se encolan, no se pierden
+      conv.incoming = { id: m.id, name, size, mime, got: 0, sinkP: makeSink(m.id, size), q: Promise.resolve() };
+      conv.incoming.sinkP.then(sink => {
+        if (sink) return;
+        rawSend(conv, { t: 'fdeny', id: m.id, why: 'sin lugar para archivos grandes' });
+        patchMsg(conv, m.id, { problem: 'Tu navegador no pudo recibir un archivo de este tamaño' });
+      });
       break;
+    }
     case 'fend':
       finishIncoming(conv);
+      break;
+    case 'fdeny':
+      conv.denied.add(m.id);
+      patchMsg(conv, m.id, { problem: 'No lo pudo recibir' + (m.why ? ' (' + esc(clean(m.why)) + ')' : '') });
       break;
     case 'bye':
       linkDown(conv, `<b>${esc(conv.name)}</b> cerró la conversación.`);
@@ -1262,16 +1283,67 @@ async function onData(conv, ev){
 function onBinary(conv, buf){
   const inc = conv.incoming;
   if (!inc) return;
-  inc.chunks.push(buf);
   inc.got += buf.byteLength;
+  inc.q = inc.q.then(async () => {
+    const sink = await inc.sinkP;
+    if (sink) await sink.write(buf);
+  }).catch(() => {});
   patchMsg(conv, inc.id, { progress: inc.size ? inc.got / inc.size : 0 });
 }
-function finishIncoming(conv){
+async function finishIncoming(conv){
   const inc = conv.incoming;
   if (!inc) return;
   conv.incoming = null;
-  const blob = new Blob(inc.chunks, { type: inc.mime || 'application/octet-stream' });
-  patchMsg(conv, inc.id, { progress: 1, blob, url: URL.createObjectURL(blob), done: true });
+  const sink = await inc.sinkP;
+  if (!sink) return;                       // lo habíamos rechazado
+  try {
+    await inc.q;
+    let out = await sink.close(inc.mime);
+    // el archivo de disco viene sin tipo: se lo devolvemos para que la imagen se vea
+    if (inc.mime && !out.type) out = new File([out], inc.name, { type: inc.mime });
+    patchMsg(conv, inc.id, { progress: 1, blob: out, url: URL.createObjectURL(out), done: true });
+  } catch {
+    await sink.abort();
+    patchMsg(conv, inc.id, { problem: 'Se cortó la transferencia' });
+  }
+}
+
+/* ───────────── Archivos: destino de lo que entra ─────────────
+   Acumular todo en memoria hacía que un archivo grande volteara la pestaña.
+   Los chicos siguen en RAM (rápido); los grandes se escriben al sistema de
+   archivos privado del origen, que es disco. Si no hay dónde, se rechaza. */
+function ramSink(){
+  const chunks = [];
+  return {
+    disk: false,
+    write(buf){ chunks.push(buf); },
+    async close(mime){ return new Blob(chunks, { type: mime || 'application/octet-stream' }); },
+    async abort(){ chunks.length = 0; }
+  };
+}
+async function diskSink(id){
+  const root = await navigator.storage.getDirectory();
+  const dir = await root.getDirectoryHandle('zerohop-files', { create: true });
+  const fh = await dir.getFileHandle(id, { create: true });
+  const w = await fh.createWritable();
+  return {
+    disk: true,
+    write(buf){ return w.write(buf); },
+    async close(){ await w.close(); return await fh.getFile(); },
+    async abort(){ try { await w.abort(); } catch {} try { await dir.removeEntry(id); } catch {} }
+  };
+}
+async function makeSink(id, size){
+  if (size <= RAM_LIMIT) return ramSink();
+  try { return await diskSink(id); } catch { return null; }
+}
+// Los archivos recibidos no sobreviven a la sesión, igual que los mensajes.
+async function wipeDiskFiles(){
+  try {
+    const root = await navigator.storage.getDirectory();
+    const dir = await root.getDirectoryHandle('zerohop-files', { create: true });
+    for await (const k of dir.keys()) await dir.removeEntry(k).catch(() => {});
+  } catch {}
 }
 
 /* ───────────── Archivos ───────────── */
@@ -1282,18 +1354,22 @@ function drain(conv){
     conv.dc.addEventListener('bufferedamountlow', on);
   });
 }
-function queueFile(conv, file){
-  conv.outQueue = conv.outQueue.then(() => sendFile(conv, file)).catch(e => console.error(e));
+function queueFile(conv, file, reuseId){
+  conv.outQueue = conv.outQueue.then(() => sendFile(conv, file, reuseId)).catch(e => console.error(e));
 }
-async function sendFile(conv, file){
+async function sendFile(conv, file, reuseId){
   if (!conv.dc || conv.dc.readyState !== 'open') return toast('No hay conexión activa');
-  const id = uid(), ts = Date.now();
+  const id = reuseId || uid(), ts = Date.now();
+  conv.denied.delete(id);
   rawSend(conv, { t: 'fmeta', id, name: file.name, size: file.size, mime: file.type, ts });
-  addMsg(conv, { id, dir: 'out', kind: 'file', name: file.name, size: file.size, mime: file.type, ts, progress: 0, state: 'sent' });
+  if (reuseId) patchMsg(conv, id, { problem: '', progress: 0, done: false });
+  else addMsg(conv, { id, dir: 'out', kind: 'file', name: file.name, size: file.size,
+                      mime: file.type, ts, progress: 0, state: 'sent', file });
   let sent = 0;
   try {
     while (sent < file.size){
       await drain(conv);
+      if (conv.denied.has(id)) return;                       // el otro lo rechazó
       if (!conv.dc || conv.dc.readyState !== 'open') throw new Error('canal cerrado');
       const buf = await file.slice(sent, sent + CHUNK).arrayBuffer();
       conv.dc.send(buf);
@@ -1303,8 +1379,25 @@ async function sendFile(conv, file){
     rawSend(conv, { t: 'fend', id, ts });
     patchMsg(conv, id, { progress: 1, blob: file, url: URL.createObjectURL(file), done: true });
   } catch {
-    patchMsg(conv, id, { failed: true });
-    toast('No se pudo enviar ' + file.name);
+    patchMsg(conv, id, { problem: 'No se pudo enviar' });
+  }
+}
+
+// Reintento manual: el texto se reenvía con el mismo id para que los acuses
+// sigan calzando; el archivo se manda de nuevo desde el File original.
+function retryMsg(id){
+  const c = current;
+  if (!c) return;
+  const m = c.msgs.find(x => x.id === id);
+  if (!m) return;
+  if (!c.dc || c.dc.readyState !== 'open') return toast('No hay conexión activa');
+  if (m.kind === 'text'){
+    const ok = rawSend(c, { t: 'msg', id: m.id, text: m.text, ts: m.ts });
+    patchMsg(c, id, { problem: ok ? '' : 'No se pudo enviar', state: 'sent' });
+  } else if (m.file){
+    queueFile(c, m.file, id);
+  } else {
+    toast('Ese archivo ya no está disponible para reenviar');
   }
 }
 
@@ -1347,25 +1440,34 @@ const TICKS = {
   delivered: '<svg viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41zm4.24-1.41L11.66 16.17 7.5 12.01l-1.41 1.41L11.66 19l12-12zM.41 13.41 6 19l1.41-1.41L1.83 12z"/></svg>'
 };
 function metaHtml(m){
-  const tick = m.dir === 'out' ? (m.state === 'sent' ? TICKS.sent : TICKS.delivered) : '';
+  const tick = m.dir === 'out' ? (m.problem ? '' : (m.state === 'sent' ? TICKS.sent : TICKS.delivered)) : '';
   return `<span class="meta${m.state === 'read' ? ' read' : ''}">${hhmm(m.ts)}${tick}</span>`;
 }
+function probHtml(m){
+  if (!m.problem) return '';
+  const retry = m.dir === 'out' ? `<button data-retry="${esc(m.id)}">Reintentar</button>` : '';
+  return `<div class="prob">⚠ ${esc(m.problem)} ${retry}</div>`;
+}
 function bubbleHtml(m){
-  if (m.kind === 'text') return metaHtml(m) + linkify(m.text);
+  if (m.kind === 'text') return metaHtml(m) + linkify(m.text) + probHtml(m);
   if (m.done && (m.mime || '').startsWith('image/'))
-    return `<img class="photo" src="${m.url}" alt="${esc(m.name)}">` + metaHtml(m);
+    return `<img class="photo" src="${m.url}" alt="${esc(m.name)}">` + metaHtml(m) + probHtml(m);
   const action = m.done ? `<a class="dl" href="${m.url}" download="${esc(m.name)}">Guardar</a>` : '';
-  const bar = m.done ? '' : `<div class="bar"><i style="width:${Math.round((m.progress || 0) * 100)}%"></i></div>`;
+  const bar = (m.done || m.problem) ? '' : `<div class="bar"><i style="width:${Math.round((m.progress || 0) * 100)}%"></i></div>`;
+  const size = m.done || m.problem || !m.progress
+    ? humanSize(m.size)
+    : humanSize(Math.round(m.size * m.progress)) + ' de ' + humanSize(m.size);
   return '<div class="att">' +
       '<div class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg></div>' +
       '<div class="tx"><div class="nm">' + esc(m.name) + '</div>' +
-      '<div class="sz">' + (m.failed ? 'no se pudo enviar' : humanSize(m.size)) + '</div></div>' +
+      '<div class="sz">' + size + '</div></div>' +
       action +
-    '</div>' + bar + metaHtml(m);
+    '</div>' + bar + metaHtml(m) + probHtml(m);
 }
 function redrawRow(conv, m, row){
   const b = row.querySelector('.bubble');
-  b.className = 'bubble' + (m.kind === 'text' ? ' txt' : (m.done && (m.mime || '').startsWith('image/') ? ' pic' : ''));
+  b.className = 'bubble' + (m.kind === 'text' ? ' txt' : (m.done && (m.mime || '').startsWith('image/') ? ' pic' : ''))
+              + (m.problem ? ' bad' : '');
   b.innerHTML = bubbleHtml(m);
   const img = b.querySelector('img.photo');
   if (img) img.onclick = () => { $('#lightbox-img').src = m.url; $('#lightbox').hidden = false; };
@@ -1485,8 +1587,18 @@ function linkDown(conv, reason){
   if (conv.status === 'offline') return;
   closeConv(conv, false);
   conv.preview = 'Sin conexión · tocá para reinvitar';
+  // lo que salió pero nunca se confirmó: no sabemos si llegó, y lo decimos
+  let dudosos = 0;
+  for (const m of conv.msgs){
+    if (m.dir === 'out' && m.state === 'sent' && !m.problem){
+      m.problem = 'Sin confirmar'; dudosos++;
+    }
+  }
   if (reason) sysMsg(conv, reason, false);
-  if (current === conv){ paintChatState(conv); hideTypingRow(); }
+  if (current === conv){
+    if (dudosos) renderMessages(conv);
+    paintChatState(conv); hideTypingRow();
+  }
   renderList();
   saveContacts();
 }
@@ -1898,8 +2010,9 @@ function sendText(){
   if (!text || !current) return;
   if (!current.dc || current.dc.readyState !== 'open') return toast('No hay conexión activa');
   const id = uid(), ts = Date.now();
-  rawSend(current, { t: 'msg', id, text, ts });
-  addMsg(current, { id, dir: 'out', kind: 'text', text, ts, state: 'sent' });
+  const ok = rawSend(current, { t: 'msg', id, text, ts });
+  addMsg(current, { id, dir: 'out', kind: 'text', text, ts, state: 'sent',
+                    problem: ok ? '' : 'No se pudo enviar' });
   ta.value = ''; autoGrow(ta);
   if (current.typingSent){ rawSend(current, { t: 'typing', v: false }); current.typingSent = false; }
   ta.focus();
@@ -1993,6 +2106,10 @@ input.addEventListener('keydown', e => {
 });
 $('#send').addEventListener('click', sendText);
 $('#msgs').addEventListener('scroll', flushRead);
+$('#msgs').addEventListener('click', e => {
+  const b = e.target.closest('[data-retry]');
+  if (b) retryMsg(b.dataset.retry);
+});
 window.addEventListener('focus', flushRead);
 
 $('#btn-file').addEventListener('click', () => $('#file').click());
@@ -2137,6 +2254,7 @@ window.addEventListener('beforeunload', e => {
   $('#my-id').textContent = prettyId(ME.fp);
   loadNet();
   loadContacts();
+  wipeDiskFiles();
   refreshFmt();
   renderList();
   await openFromHash();

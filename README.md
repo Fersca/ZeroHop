@@ -163,6 +163,46 @@ más lento, pero no le mostrás tu IP real a la otra persona.
 > Muchas VPN comerciales funcionan sin tocar nada: si la VPN deja pasar UDP y no hace NAT
 > simétrico, el STUN por defecto alcanza. Probá primero así.
 
+## Tests
+
+Siete suites end-to-end que manejan Chromium de verdad: dos o más navegadores con perfiles
+separados que se conectan entre sí, se mandan mensajes y archivos, se desconectan y
+reconectan. No hay mocks de WebRTC — las conexiones son reales.
+
+```bash
+npm install
+npx playwright install chromium
+npm test                  # todas
+npm test -- files agenda  # solo las que coincidan
+ZH_URL=file://$PWD/index.html npm test   # contra el archivo local, sin servidor
+```
+
+El runner levanta su propio servidor estático, así que no hace falta nada corriendo antes.
+Cubren: conexión y acuses, transferencia de archivos con integridad byte a byte, límites y
+escritura a disco, mensajes sin confirmar y reintento, persistencia de la agenda, identidad
+verificada y detección de impostores, varias conversaciones en paralelo, links y deep links
+de WhatsApp, y el escenario VPN con candidato manual. Corren también en CI
+(`.github/workflows/test.yml`) en cada push.
+
+## Límites de los archivos
+
+- Hasta **64 MB** el archivo recibido se arma en memoria, que es lo más rápido.
+- Más grande, se escribe **a disco** en el sistema de archivos privado del origen mientras
+  llega, para que la pestaña no se quede sin memoria. Esos archivos se borran al arrancar la
+  app: como los mensajes, no sobreviven a la sesión.
+- El techo duro es **2 GB**. Por encima, o si el navegador no puede escribir a disco, el
+  receptor **rechaza** la transferencia y los dos lados lo ven explicado en la burbuja.
+
+## Cuando algo falla
+
+- Si un mensaje sale pero la conexión se corta antes de que llegue la confirmación, la
+  burbuja queda marcada en rojo con **«Sin confirmar»** y un botón de **Reintentar**: la app
+  no te miente diciendo que llegó.
+- El reintento reenvía con el mismo identificador, así los acuses siguen calzando y no
+  aparecen mensajes duplicados.
+- Los archivos que fallan o son rechazados también se pueden reintentar, sin volver a
+  elegirlos del disco.
+
 ## Compatibilidad
 
 Chrome, Edge, Firefox y Safari modernos (escritorio y móvil). Si el navegador no soporta
