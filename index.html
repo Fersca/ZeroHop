@@ -225,6 +225,9 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .btn[disabled]{opacity:.5;pointer-events:none}
 .btn-primary{background:var(--header-solid);background-image:var(--header);color:#fff;box-shadow:0 6px 18px rgba(183,28,28,.3)}
 .btn-primary:hover{filter:brightness(1.06)}
+.btn-wa{background:#25d366;color:#fff;box-shadow:0 6px 18px rgba(37,211,102,.3);text-decoration:none;margin-bottom:8px}
+.btn-wa:hover{filter:brightness(1.05)}
+.btn-wa svg{fill:#fff}
 .btn-ghost{background:var(--panel-2);color:var(--text);border:1.5px solid var(--line)}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 .btn-row{display:flex;gap:10px}
@@ -467,6 +470,16 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 
   <div class="scroll"><div class="wrap">
 
+    <!-- Se abrió dentro del navegador de otra app (WhatsApp, Instagram…) -->
+    <div class="card" id="inapp-note" hidden style="margin-bottom:14px">
+      <h2>Abrilo en tu navegador</h2>
+      <p class="sub" style="margin-bottom:12px">Parece que abriste esto <b>dentro de otra app</b>. Ahí tu identidad y tus contactos no se guardan, y arrancás de cero cada vez. Copiá el link y pegalo en Chrome o Safari.</p>
+      <div class="copy-row">
+        <button class="btn btn-primary btn-sm" id="btn-copy-here">Copiar el link de esta página</button>
+        <button class="btn btn-ghost btn-sm" id="btn-inapp-dismiss">Seguir igual</button>
+      </div>
+    </div>
+
     <!-- Anfitrión -->
     <div class="card" id="card-host" hidden>
       <div class="steps"><div class="step on" id="hs1"></div><div class="step" id="hs2"></div></div>
@@ -478,16 +491,29 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
         <div>Generando tu invitación… (unos segundos)</div>
       </div>
       <textarea class="code-area" id="offer-out" readonly rows="3" hidden></textarea>
-      <div class="copy-row" id="offer-actions" hidden>
-        <button class="btn btn-primary btn-sm" data-copy="#offer-out">
-          <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-          <span data-copy-label>Copiar link</span>
-        </button>
-        <button class="btn btn-ghost btn-sm" data-share="#offer-out">
-          <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
-          Compartir
-        </button>
-        <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
+
+      <div id="offer-actions" hidden>
+        <a class="btn btn-wa" id="wa-invite" target="_blank" rel="noopener" href="#">
+          <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1s-.7 1-.9 1.2c-.2.2-.3.2-.6.1-1.6-.8-2.7-1.4-3.8-3.2-.3-.5.3-.5.8-1.4.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-1 1-1.2 2.3-.8 3.6.6 1.9 2.1 4 4.6 5.3 2.4 1.2 3.4 1.1 4.4.9.7-.1 1.7-.7 2-1.4.2-.5.2-1 .1-1.1 0-.1-.2-.2-.4-.3Z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Z"/></svg>
+          Invitar por WhatsApp
+        </a>
+        <div class="copy-row">
+          <button class="btn btn-ghost btn-sm" data-copy="#offer-out">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
+            <span data-copy-label>Copiar link</span>
+          </button>
+          <button class="btn btn-ghost btn-sm" data-share="#offer-out">
+            <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
+            Otra app
+          </button>
+          <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
+        </div>
+        <div class="field" style="margin:12px 0 0">
+          <label class="lbl" for="peer-phone">Su teléfono de WhatsApp (opcional)</label>
+          <input class="input" id="peer-phone" inputmode="tel" autocomplete="off"
+                 placeholder="+54 9 11 4444 9876">
+          <div class="hint">Si lo cargás, el botón abre WhatsApp <b>directo en su chat</b>. Si no, abre el selector de contactos. Queda guardado solo en este navegador.</div>
+        </div>
       </div>
       <div class="hint" id="offer-hint"></div>
 
@@ -514,14 +540,18 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
       <div id="guest-step2" hidden style="margin-top:20px">
         <div class="step-label"><span class="step-num">2</span> Devolvele esta respuesta y esperá</div>
         <textarea class="code-area" id="answer-out" readonly rows="3"></textarea>
+        <a class="btn btn-wa" id="wa-answer" target="_blank" rel="noopener" href="#">
+          <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1s-.7 1-.9 1.2c-.2.2-.3.2-.6.1-1.6-.8-2.7-1.4-3.8-3.2-.3-.5.3-.5.8-1.4.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-1 1-1.2 2.3-.8 3.6.6 1.9 2.1 4 4.6 5.3 2.4 1.2 3.4 1.1 4.4.9.7-.1 1.7-.7 2-1.4.2-.5.2-1 .1-1.1 0-.1-.2-.2-.4-.3Z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Z"/></svg>
+          Responder por WhatsApp
+        </a>
         <div class="copy-row">
-          <button class="btn btn-primary btn-sm" data-copy="#answer-out">
+          <button class="btn btn-ghost btn-sm" data-copy="#answer-out">
             <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
             <span data-copy-label>Copiar link</span>
           </button>
           <button class="btn btn-ghost btn-sm" data-share="#answer-out">
             <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
-            Compartir
+            Otra app
           </button>
           <button class="btn btn-ghost btn-sm" data-fmt="#answer-out">Ver código suelto</button>
         </div>
@@ -572,6 +602,13 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
         <label class="lbl" for="myname">Tu nombre</label>
         <input class="input" id="myname" maxlength="24" placeholder="¿Cómo te ven?" autocomplete="nickname">
       </div>
+      <div class="field">
+        <label class="lbl" for="myphone">Tu teléfono de WhatsApp (opcional)</label>
+        <input class="input" id="myphone" inputmode="tel" autocomplete="tel"
+               placeholder="+54 9 11 5555 5555">
+        <div class="hint">Si lo cargás, <b>viaja dentro de tus invitaciones</b> para que la otra persona pueda contestarte por WhatsApp con un toque, sin buscarte en la agenda. Dejalo vacío y nadie lo ve.</div>
+      </div>
+
       <label class="lbl">Tu ID permanente</label>
       <div class="idbox" id="my-id">…</div>
       <div class="copy-row">
@@ -730,13 +767,16 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
+// La URL tal cual entró, antes de que limpiemos el # de la invitación
+const ENTRY_URL = location.href;
+
 const CHUNK = 16 * 1024;
 const HIGH_WATER = 1024 * 1024;
 const ECDSA = { name: 'ECDSA', namedCurve: 'P-256' };
 const SIGN  = { name: 'ECDSA', hash: 'SHA-256' };
 
 /* ───────────── Estado global ───────────── */
-const ME = { name: '', fp: '', jwk: null, priv: null, ok: false };
+const ME = { name: '', phone: '', fp: '', jwk: null, priv: null, ok: false };
 const convs = new Map();          // id -> conversación (viva o guardada)
 let current = null;               // conversación abierta
 let net = { useStun: true, manualIp: '', turn: { url: '', user: '', pass: '' }, forceRelay: false };
@@ -800,6 +840,7 @@ async function loadIdentity(){
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem('zh:me') || 'null'); } catch {}
   ME.name = (saved && saved.name) || localStorage.getItem('zh:name') || '';
+  ME.phone = (saved && saved.phone) || '';
   if (!self.crypto || !crypto.subtle){
     ME.fp = saved && saved.fp ? saved.fp : 'sin-id-' + uid().slice(0, 6);
     return;                                   // sin WebCrypto: seguimos, pero sin verificación
@@ -825,6 +866,7 @@ function saveIdentityName(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('zh:me') || '{}'); } catch {}
   saved.name = ME.name;
+  saved.phone = ME.phone;
   localStorage.setItem('zh:me', JSON.stringify(saved));
 }
 const prettyId = fp => (fp.match(/.{1,4}/g) || [fp]).join(' ').toUpperCase();
@@ -852,6 +894,7 @@ function loadContacts(){
     if (!c || !c.id) continue;
     const conv = makeConv(c.id, c.name, c.jwk);
     conv.lastTs = c.lastSeen || 0;
+    conv.phone = c.phone || '';
     conv.preview = 'Sin conexión · tocá para reinvitar';
     conv.saved = true;
     conv.verifiedOnce = !!c.verified;
@@ -860,14 +903,15 @@ function loadContacts(){
 function saveContacts(){
   const list = [...convs.values()]
     .filter(c => c.saved && !c.id.startsWith('tmp:'))
-    .map(c => ({ id: c.id, name: c.name, jwk: c.jwk, lastSeen: c.lastTs, verified: c.verifiedOnce }));
+    .map(c => ({ id: c.id, name: c.name, jwk: c.jwk, phone: c.phone,
+                 lastSeen: c.lastTs, verified: c.verifiedOnce }));
   localStorage.setItem('zh:contacts', JSON.stringify(list));
 }
 
 /* ───────────── Conversaciones ───────────── */
 function makeConv(id, name, jwk){
   const conv = {
-    id, name: name || 'Contacto', jwk: jwk || null,
+    id, name: name || 'Contacto', jwk: jwk || null, phone: '',
     pc: null, dc: null, role: null, sid: '',
     status: 'offline',                 // offline | inviting | connecting | online
     localSdp: '', remoteSdp: '',
@@ -1055,11 +1099,11 @@ function wireChannel(conv, dc){
 // El identificador de un contacto es la huella de su clave pública: no se
 // confía en el id que venga en el mensaje, se recalcula.
 async function identityOf(p){
-  const name = clean(p.name);
+  const name = clean(p.name), tel = clean(p.tel);
   if (p.pub && ME.ok){
-    try { return { id: await fpOfJwk(p.pub), name, jwk: p.pub }; } catch {}
+    try { return { id: await fpOfJwk(p.pub), name, jwk: p.pub, tel }; } catch {}
   }
-  return { id: p.id || 'tmp:' + uid(), name, jwk: p.pub || null };
+  return { id: p.id || 'tmp:' + uid(), name, jwk: p.pub || null, tel };
 }
 
 // Mueve el transporte de una conversación a otra (cuando descubrimos que del
@@ -1082,7 +1126,8 @@ async function startInvite(conv){
   await gatherComplete(pc);
   conv.localSdp = pc.localDescription.sdp;
   renderList();
-  return pack({ k: 'o', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp, name: ME.name || 'Anónimo', pub: ME.jwk });
+  return pack({ k: 'o', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp,
+                name: ME.name || 'Anónimo', pub: ME.jwk, tel: ME.phone || undefined });
 }
 
 async function acceptAnswer(raw){
@@ -1102,10 +1147,12 @@ async function acceptAnswer(raw){
     if (otro.status !== 'offline') closeConv(otro, false);
     moveTransport(conv, otro);
     otro.remoteSdp = p.s;
+    if (who.tel) otro.phone = who.tel;
     otro.warnMismatch = esperado;
     conv = otro;
   } else {
     conv = rekey(conv, who.id, who.name, who.jwk);
+    if (who.tel) conv.phone = who.tel;
   }
   if (inviteConv) inviteConv = conv;         // la conversación pudo cambiar de objeto
   setConvStatus(conv, 'connecting', 'conectando…');
@@ -1122,6 +1169,7 @@ async function joinWithOffer(raw){
   if (conv.status !== 'offline') closeConv(conv, false);
   if (who.name) conv.name = who.name;
   if (who.jwk) conv.jwk = who.jwk;
+  if (who.tel) conv.phone = who.tel;
   conv.role = 'guest';
   conv.sid = p.sid || '';
   conv.remoteSdp = p.s;
@@ -1134,7 +1182,8 @@ async function joinWithOffer(raw){
   conv.localSdp = pc.localDescription.sdp;
   setConvStatus(conv, 'connecting', 'esperando…');
   renderList();
-  const code = await pack({ k: 'a', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp, name: ME.name || 'Anónimo', pub: ME.jwk });
+  const code = await pack({ k: 'a', s: withManualIp(conv.localSdp), sid: conv.sid, id: ME.fp,
+                           name: ME.name || 'Anónimo', pub: ME.jwk, tel: ME.phone || undefined });
   return { conv, code };
 }
 
@@ -1151,6 +1200,7 @@ async function onData(conv, ev){
   switch (m.t){
     case 'hello': {
       const who = await identityOf(m);
+      if (who.tel) conv.phone = who.tel;
       if (conv.id.startsWith('tmp:') || conv.id === who.id){
         conv = rekey(conv, who.id, who.name, who.jwk);
       } else {
@@ -1423,7 +1473,7 @@ function markOnline(conv){
   setConvStatus(conv, 'online', 'en línea · cifrado punta a punta');
   conv.saved = true;
   if (!conv.msgs.length)
-    sysMsg(conv, 'Conexión directa establecida. Los mensajes viajan cifrados entre los dos navegadores, <b>sin pasar por ningún servidor</b>.');
+    sysMsg(conv, '🔒 <b>Línea segura establecida.</b> Los mensajes van directo de un navegador al otro, cifrados, <b>sin pasar por ningún servidor</b>.');
   else
     sysMsg(conv, 'Conexión restablecida.');
   // si estábamos negociando esta conversación, abrimos su chat al conectar
@@ -1556,10 +1606,16 @@ $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sh
 async function showSafety(){
   if (!current) return;
   const code = await safetyCode(current);
+  const wa = code
+    ? `<a class="btn btn-wa" style="margin-top:14px" target="_blank" rel="noopener"
+          href="${esc(waUrl(current.phone, `Mi código de seguridad de ZeroHop es: ${code}\n¿Te aparece el mismo?`))}">
+         Comparar por WhatsApp
+       </a>` : '';
   sheet(`
     <h3>Código de seguridad</h3>
-    <p>Se calcula con las huellas de los certificados DTLS de ambos lados. Si a los dos les aparece el mismo código, nadie se metió en el medio.</p>
+    <p>Se calcula con las huellas de los certificados DTLS de ambos lados. Si a los dos les aparece el mismo código, nadie se metió en el medio. Compararlo por el canal que ya usan —WhatsApp— cierra el círculo.</p>
     <div class="safety">${code ? esc(code) : 'No disponible'}</div>
+    ${wa}
     <div class="kv" style="margin-top:14px"><span>Identidad de ${esc(current.name)}</span><span>${current.verified ? '✔ verificada' : 'sin verificar'}</span></div>
     <div class="kv"><span>Su ID</span><span>${esc(prettyId(current.id))}</span></div>
     <button class="btn btn-primary" style="margin-top:16px" data-close-sheet>Listo</button>`);
@@ -1594,6 +1650,45 @@ async function showInfo(){
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-close-sheet]')) $('#sheet').hidden = true; });
 
+/* ───────────── WhatsApp: "vamos a la línea segura" ─────────────
+   WhatsApp ya sabe que del otro lado está quien decís; nosotros solo mudamos
+   la conversación abriendo su app con el texto escrito. La vuelta nunca es
+   automática: leer WhatsApp desde acá no se puede, ni se debe. */
+const digits = s => String(s || '').replace(/\D/g, '');
+const waUrl = (phone, text) => 'https://wa.me/' + digits(phone) + '?text=' + encodeURIComponent(text);
+
+const waInviteText = (payload, esLink) => esLink
+  ? `🔒 Pasemos a la línea segura.\n\nAbrí este link y seguimos por un canal directo entre nuestros navegadores, sin servidores en el medio:\n\n${payload}\n\nEs ZeroHop: no hay que instalar nada y el link sirve una sola vez.`
+  : `🔒 Pasemos a la línea segura. Pegá este código en ZeroHop:\n\n${payload}`;
+const waAnswerText = (payload, esLink) => esLink
+  ? `🔒 Listo, te devuelvo la respuesta. Abrila y quedamos conectados:\n\n${payload}`
+  : `🔒 Esta es mi respuesta, pegala en ZeroHop:\n\n${payload}`;
+
+function updateWaLinks(){
+  const phone = (inviteConv && inviteConv.phone) || '';
+  const off = $('#offer-out'), ans = $('#answer-out');
+  if (off.dataset.code){
+    const p = canLink() ? linkFor('i', off.dataset.code) : off.dataset.code;
+    $('#wa-invite').href = waUrl(phone, waInviteText(p, canLink()));
+  }
+  if (ans.dataset.code){
+    const p = canLink() ? linkFor('r', ans.dataset.code) : ans.dataset.code;
+    $('#wa-answer').href = waUrl(phone, waAnswerText(p, canLink()));
+  }
+}
+
+// Los navegadores embebidos (WhatsApp, Instagram) tienen almacenamiento
+// propio: ahí la identidad y los contactos no sobreviven.
+function inAppBrowser(){
+  const ua = navigator.userAgent || '';
+  if (/\bWhatsApp\b|FBAN|FBAV|Instagram|Line\/|MicroMessenger|FB_IAB/i.test(ua)) return true;
+  const ios = /iPhone|iPod|iPad/.test(ua);
+  return ios && !/Safari\//.test(ua) && !navigator.standalone;
+}
+function checkInApp(){
+  $('#inapp-note').hidden = !(inAppBrowser() && sessionStorage.getItem('zh:inapp-ok') !== '1');
+}
+
 /* ───────────── Links de invitación ───────────── */
 const canLink = () => location.protocol === 'http:' || location.protocol === 'https:';
 const linkFor = (kind, code) => location.origin + location.pathname + '#' + kind + '=' + code;
@@ -1609,8 +1704,9 @@ function refreshFmt(){
   $$('[data-copy-label]').forEach(s => s.textContent = useLink ? 'Copiar link' : 'Copiar código');
   $$('[data-fmt]').forEach(b => { b.textContent = useLink ? 'Ver código suelto' : 'Ver link'; b.hidden = !canLink(); });
   $('#offer-hint').innerHTML = useLink
-    ? 'La invitación viaja en la parte del link posterior al <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: quien aloja la página no la ve.'
+    ? 'La invitación viaja en la parte del link posterior al <b>#</b>, y esa parte <b>nunca se envía al servidor</b>: quien aloja la página no la ve. Tampoco WhatsApp, que solo transporta el texto cifrado.'
     : 'Código suelto, por si la otra persona abre el archivo HTML en su máquina en vez de la página web.';
+  updateWaLinks();
 }
 
 let bc = null;
@@ -1678,6 +1774,7 @@ window.addEventListener('hashchange', openFromHash);
 
 /* ───────────── Flujo de invitación ───────────── */
 function showCard(which){
+  checkInApp();
   $('#card-host').hidden   = which !== 'host';
   $('#card-guest').hidden  = which !== 'guest';
   $('#card-answer').hidden = which !== 'answer';
@@ -1715,6 +1812,7 @@ async function startHostFlow(bindTo){
     if (target){ closeConv(target, true); target.status = 'offline'; conv = target; }
     else conv = makeConv('tmp:' + uid(), 'Invitación');
     inviteConv = conv;
+    $('#peer-phone').value = conv.phone || '';
     const code = await startInvite(conv);
     $('#host-wait').style.display = 'none';
     $('#offer-out').hidden = false;
@@ -1958,6 +2056,24 @@ $('#mi-forget').addEventListener('click', () => {
   goHome();
 });
 
+$('#btn-inapp-dismiss').addEventListener('click', () => {
+  sessionStorage.setItem('zh:inapp-ok', '1');
+  $('#inapp-note').hidden = true;
+});
+$('#btn-copy-here').addEventListener('click', async () => {
+  toast(await copyText(ENTRY_URL) ? 'Link copiado: pegalo en Chrome o Safari' : 'Copialo de la barra de direcciones');
+});
+$('#peer-phone').addEventListener('input', e => {
+  if (!inviteConv) return;
+  inviteConv.phone = e.target.value.trim();
+  if (inviteConv.saved) saveContacts();
+  updateWaLinks();
+});
+$('#myphone').addEventListener('input', e => {
+  ME.phone = e.target.value.trim().slice(0, 24);
+  saveIdentityName();
+  updateWaLinks();
+});
 $('#myname').addEventListener('input', e => {
   ME.name = e.target.value.trim().slice(0, 24);
   saveIdentityName();
@@ -2016,6 +2132,7 @@ window.addEventListener('beforeunload', e => {
   applyTheme(localStorage.getItem('zh:theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   await loadIdentity();
   $('#myname').value = ME.name;
+  $('#myphone').value = ME.phone;
   $('#me-av').textContent = initial(ME.name);
   $('#my-id').textContent = prettyId(ME.fp);
   loadNet();

@@ -39,6 +39,34 @@ Al abrir un link, ZeroHop limpia el `#` de la barra de direcciones para que el c
 quede a la vista ni en el historial de esa pestaña. Igual, el link queda en el chat por
 donde lo mandaste: tratalo como lo que es, la llave de esa conversación.
 
+## El salto desde WhatsApp
+
+La idea es "pasemos a la línea segura": venís hablando por WhatsApp, donde ya sabés que
+del otro lado está quien decís, y mudás la conversación a un canal directo.
+
+- **Invitar por WhatsApp** abre WhatsApp con el mensaje ya escrito y el link adentro. Si
+  cargaste el teléfono de esa persona, abre **directo en su chat**; si no, el selector de
+  contactos.
+- Del otro lado, **Responder por WhatsApp** vuelve al chat correcto sin buscarte en la
+  agenda: tu número viaja dentro de la invitación, pero **solo si lo cargaste** en Ajustes.
+  Vacío, nadie lo ve.
+- El **código de seguridad** se puede comparar por WhatsApp con un botón. Como ese canal ya
+  es cifrado punta a punta y confiás en él, comparar ahí cierra el círculo contra cualquier
+  intermediario.
+
+Dos cosas que conviene saber:
+
+- **Los links abiertos dentro de WhatsApp** caen en su navegador embebido, que tiene
+  almacenamiento propio: ahí tu identidad y tus contactos no se guardan. ZeroHop lo detecta
+  y te ofrece copiar el link para abrirlo en Chrome o Safari.
+- **Dejá ZeroHop abierto** mientras esperás la respuesta. La conexión a medio armar vive en
+  memoria y no se puede guardar: si el sistema descarta la pestaña, hay que invitar de nuevo.
+  Como la otra persona ya está del otro lado mirando, suele tardar segundos.
+
+La integración es de ida solamente: abrir WhatsApp con el texto puesto. Leer los mensajes
+para detectar la respuesta sola no se puede — la API de WhatsApp Business es para empresas
+y automatizar WhatsApp Web viola sus términos y termina con el número baneado.
+
 ## Varias conversaciones a la vez
 
 La pantalla de inicio es una lista tipo WhatsApp: cada contacto con su avatar, el último
@@ -76,6 +104,7 @@ encontrarte».
 ## Qué tiene
 
 - Varias conversaciones simultáneas, cada una con su propia conexión.
+- Invitación y respuesta por WhatsApp en un toque, con el chat correcto ya abierto.
 - Mensajes de texto, con indicador de "escribiendo…" y tildes de enviado / entregado / leído.
 - Envío de archivos e imágenes (troceado en bloques de 16 KB con control de flujo:
   8 MB tardan ~4 s en LAN). Las imágenes se ven en la burbuja, el resto se descarga.
@@ -91,7 +120,8 @@ encontrarte».
   directamente entre los dos navegadores.
 - **No hay historial de mensajes.** Al cerrar la pestaña, las conversaciones desaparecen.
   En `localStorage` quedan solo tu identidad (el par de claves), tu nombre, la agenda de
-  contactos (nombre + clave pública) y las preferencias. Nunca el contenido de los chats.
+  contactos (nombre, clave pública y teléfono si lo cargaste) y las preferencias. Nunca el
+  contenido de los chats.
   Todo eso se borra con un botón en Ajustes.
 - **No hay cuentas, ni registro, ni analytics, ni pedidos de red externos.**
 - Por defecto se usan servidores **STUN** públicos de Google, que sirven únicamente para
