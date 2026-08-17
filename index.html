@@ -744,7 +744,8 @@ async function unpack(code){
   try { bytes = b64u.dec(body); } catch { throw new Error('El código está incompleto o mal copiado.'); }
   if (tag === 'ZH1'){
     if (!self.DecompressionStream) throw new Error('Tu navegador no puede descomprimir este código.');
-    bytes = await squeeze(bytes, 'd');
+    try { bytes = await squeeze(bytes, 'd'); }
+    catch { throw new Error('El código llegó cortado o modificado. Pedí que te lo manden de nuevo, entero.'); }
   }
   let obj;
   try { obj = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new Error('El código está corrupto. Pedí que te lo manden de nuevo.'); }
@@ -1222,6 +1223,8 @@ function resetAll(){
   $('#offer-out').hidden = true; $('#offer-actions').hidden = true; $('#host-wait').style.display = '';
   $('#guest-step2').hidden = true;
   $('#guest-name-field').hidden = true;
+  $('#offer-in').closest('.field').hidden = false;
+  $('#btn-make-answer').hidden = false;
   $('#guest-h2').textContent = 'Paso 1 · Pegá la invitación';
   $('#guest-sub').textContent = 'Pegá el link o el código que te pasaron y generá tu respuesta.';
   $('#btn-make-answer').innerHTML = 'Generar respuesta';
@@ -1310,7 +1313,9 @@ async function openFromHash(){
     $('#guest-h2').textContent = 'Te invitaron a un chat';
     $('#guest-sub').textContent = 'Poné tu nombre y devolvele la respuesta a quien te invitó. Nada de esto pasa por un servidor.';
     $('#offer-in').value = code;
-    $('#btn-make-answer').disabled = false;
+    // llegó por link: no necesita ver ni pegar el código de invitación
+    $('#offer-in').closest('.field').hidden = true;
+    $('#btn-make-answer').hidden = true;
     await makeAnswer(code);
     $('#myname2').focus();
   } else {
@@ -1455,6 +1460,9 @@ async function makeAnswer(raw){
     btn.innerHTML = 'Respuesta generada';
     $('#answer-out').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e){
+    // si venía por link, mostramos el campo para que pueda corregir a mano
+    $('#offer-in').closest('.field').hidden = false;
+    btn.hidden = false;
     btn.disabled = false; btn.textContent = 'Generar respuesta';
     showErr('#guest-err', e.message);
   }
