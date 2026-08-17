@@ -1,4 +1,4 @@
-import { newUser, bothInChat, say, localIPv4 } from '../lib.mjs';
+import { newUser, bothInChat, say, home, localIPv4 } from '../lib.mjs';
 
 // Simula el escenario VPN: Chrome oculta la IP local detrás de un nombre mDNS
 // que no resuelve a través del túnel, así que borramos esos candidatos del
@@ -44,6 +44,52 @@ export default {
     await B.waitForSelector('.row.in .bubble', { timeout: 10000 });
     t.ok(true, 'conectan usando únicamente el candidato manual (escenario VPN real)');
 
+    // ── el interruptor de STUN cambia lo que se le pide al navegador ──
+    const stun = await A.evaluate(() => {
+      const sin = rtcConfig().iceServers.length;
+      net.useStun = true;
+      const con = rtcConfig().iceServers;
+      net.useStun = false;
+      return { sin, con: con.length, urls: con[0] ? [].concat(con[0].urls).join(' ') : '' };
+    });
+    t.ok(stun.sin === 0 && stun.con === 1 && /^stun:/.test(stun.urls),
+      'apagar STUN saca los servidores públicos; prenderlo los devuelve');
+
+    // abre Ajustes con el panel avanzado desplegado, desde donde esté
+    const ajustes = async () => {
+      if (!(await A.isVisible('#home'))) await home(A);
+      await A.click('#btn-home-menu');
+      await A.click('#mi-settings');
+      await A.waitForSelector('#settings:not([hidden])');
+      if (!(await A.evaluate(() => $('#adv').open))) await A.click('#adv summary');
+    };
+
+    // ── una IP mal escrita no se guarda y se marca en rojo ──
+    const ips = [];
+    for (const valor of ['999.999.1.1', '10.8.0.256', '10.8.0', 'no es una ip', 'deadbeef',
+                         '10.8.0.7', 'fd00::1234', '']){
+      await ajustes();
+      await A.fill('#vpn-ip', valor);
+      ips.push(await A.evaluate(v => ({ v, guardada: net.manualIp, rojo: !!$('#vpn-ip').style.borderColor }), valor));
+      await A.click('#settings [data-home]');
+    }
+    t.ok(ips.filter(x => !x.guardada && x.rojo).length === 5 &&
+         ips.find(x => x.v === '10.8.0.7').guardada === '10.8.0.7' &&
+         ips.find(x => x.v === 'fd00::1234').guardada === 'fd00::1234',
+      'las IPs inválidas se marcan y no se guardan; IPv4 e IPv6 válidas sí');
+    t.ok(!ips.find(x => x.v === '').rojo, 'y dejar el campo vacío no es un error: es "no uso VPN"');
+
+    // ── relay forzado sin TURN no se puede prender: no hay a dónde relayear ──
+    await A.evaluate(() => { net.turn = { url: '', user: '', pass: '' }; net.forceRelay = false; saveNet(); });
+    await ajustes();
+    await A.click('#tgl-relay');
+    await A.waitForTimeout(150);
+    t.ok(await A.evaluate(() => net.forceRelay === false) &&
+         await A.getAttribute('#tgl-relay', 'aria-checked') === 'false' &&
+         /TURN/i.test(await A.textContent('#toast')),
+      'forzar relay sin TURN configurado no prende el interruptor y avisa por qué');
+    await A.click('#settings [data-home]');
+
     // ── TURN y relay forzado llegan a la configuración ──
     const cfg = await A.evaluate(() => {
       net.turn = { url: 'turn:turn.ejemplo.com:3478', user: 'u', pass: 'p' };
@@ -55,6 +101,8 @@ export default {
       'el TURN propio y el relay forzado llegan a RTCPeerConnection');
 
     // ── panel de detalles ──
+    await A.click('.conv');                     // vuelve a la conversación, que sigue viva
+    await A.waitForSelector('#chat:not([hidden])');
     await A.click('#btn-menu');
     await A.click('#mi-info');
     await A.waitForSelector('.kv');

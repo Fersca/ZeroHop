@@ -17,17 +17,10 @@ const ROOT = path.resolve(HERE, '..');
 const PORT = Number(process.env.ZH_PORT || 8899);
 const FILTER = process.argv.slice(2);
 
-const SUITES = [
-  '01-chat.mjs',
-  '02-files.mjs',
-  '03-errors.mjs',
-  '04-agenda.mjs',
-  '05-multi.mjs',
-  '06-links.mjs',
-  '07-vpn.mjs',
-  '08-csp.mjs',
-  '09-pwa.mjs'
-];
+// las suites se descubren solas: alcanza con dejar el archivo en tests/suites,
+// numerado para que el orden sea el mismo siempre
+const SUITES = (await fs.readdir(path.join(HERE, 'suites')))
+  .filter(f => f.endsWith('.mjs')).sort();
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.json': 'application/json',
@@ -35,8 +28,13 @@ const TYPES = {
   '.md': 'text/plain; charset=utf-8'
 };
 
+// Todo lo que el servidor realmente recibió. Lo usa la suite de privacidad para
+// probar que el código de invitación (que va en el #) nunca llega hasta acá.
+const HITS = [];
+
 async function serve(){
   const server = http.createServer(async (req, res) => {
+    HITS.push(req.method + ' ' + req.url);
     const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
     const file = path.join(ROOT, rel);
     if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
@@ -73,7 +71,7 @@ const run = async () => {
     if (FILTER.length && !FILTER.some(f => file.includes(f))) continue;
     const suite = (await import(path.join(HERE, 'suites', file))).default;
     const jsErrors = [];
-    const env = { browser, url, jsErrors };
+    const env = { browser, url, jsErrors, hits: HITS };
     const t = {
       ok(cond, msg){
         if (cond){ pass++; console.log(`  ${C.ok}✔${C.off} ${msg}`); }

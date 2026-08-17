@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <!-- El script inline se permite por su hash: nada externo puede cargarse y un
      script inyectado no corre. Si editás el script, corré: npm run csp -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-uX5IK9yLeoOSZTlEdesoHC7e8/9WjM+yCyMIOZp0LY4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'self' blob:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XHuE3e164vKoDJnRAhvQZxEiVqxkBEgOmIvZQEZHMss='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'self' blob:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>ZeroHop · Chat P2P sin servidor</title>
 <meta name="description" content="Chat privado navegador a navegador con WebRTC. Sin servidor intermedio, sin cuentas, sin historial.">
 <link rel="manifest" href="manifest.json">
@@ -892,6 +892,15 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>
 const hhmm = t => new Date(t).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 const dayKey = t => new Date(t).toDateString();
 const clean = s => String(s == null ? '' : s).slice(0, 40);
+// Nombre de archivo del otro lado: recortado, pero conservando la extensión —
+// sin ella el archivo guardado no lo abre nada. El texto se escapa al mostrarlo
+// y el navegador ya sanea el atributo download, así que no hace falta tocar más.
+function fileName(s){
+  const n = String(s == null ? '' : s).trim();
+  if (n.length <= 70) return n;
+  const ext = /\.[A-Za-z0-9]{1,8}$/.exec(n);
+  return ext ? n.slice(0, 70 - ext[0].length) + ext[0] : n.slice(0, 70);
+}
 
 function humanSize(n){
   if (n < 1024) return n + ' B';
@@ -1043,11 +1052,19 @@ function loadContacts(){
     conv.verifiedOnce = !!c.verified;
   }
 }
+// Contactos eliminados a mano en esta pestaña: para no revivirlos al mezclar.
+const olvidados = new Set();
 function saveContacts(){
   const list = [...convs.values()]
     .filter(c => c.saved && !c.id.startsWith('tmp:'))
     .map(c => ({ id: c.id, name: c.name, jwk: c.jwk, phone: c.phone,
                  lastSeen: c.lastTs, verified: c.verifiedOnce }));
+  // Otra pestaña del mismo navegador puede haber agregado contactos que esta no
+  // conoce: se conservan en vez de pisarlos con lo que hay en memoria acá.
+  try {
+    for (const c of JSON.parse(localStorage.getItem('zh:contacts') || '[]'))
+      if (c && c.id && !convs.has(c.id) && !olvidados.has(c.id)) list.push(c);
+  } catch {}
   localStorage.setItem('zh:contacts', JSON.stringify(list));
 }
 
@@ -1138,14 +1155,35 @@ async function pack(payload){
   }
   return 'ZH0' + b64u.enc(raw);
 }
+// El código puede llegar solo, dentro de un link, partido en líneas por un mail
+// o en medio de una frase ("pegá esto: ZH1… y listo"). Los dos últimos casos se
+// pisan —quitar los espacios arregla el partido y arruina la frase— así que
+// armamos las dos lecturas y decide cuál sirve el que sabe validar: el que la
+// descomprime.
 const CODE_RE = /ZH[01][A-Za-z0-9_-]{16,}/;
-function extractCode(txt){
-  const flat = (txt || '').trim().replace(/\s+/g, '');
-  const m = CODE_RE.exec(flat);
-  return m ? m[0] : flat;
+function codeCandidates(txt){
+  const s = String(txt == null ? '' : txt).trim();
+  const out = [];
+  const tal = CODE_RE.exec(s);                         // sin pegotear a los vecinos
+  if (tal) out.push(tal[0]);
+  const junto = CODE_RE.exec(s.replace(/\s+/g, ''));   // reconstruido de varias líneas
+  if (junto) out.push(junto[0]);
+  if (!out.length && s) out.push(s.replace(/\s+/g, ''));
+  return [...new Set(out)];
 }
+const extractCode = txt => codeCandidates(txt)[0] || '';
+
 async function unpack(code){
-  const c = extractCode(code);
+  const cands = codeCandidates(code);
+  if (!cands.length) throw new Error('El código está vacío.');
+  let ultimo = null;
+  for (const cand of cands){
+    try { return await decodeCode(cand); } catch (e){ ultimo = e; }
+  }
+  throw ultimo;
+}
+
+async function decodeCode(c){
   if (!c) throw new Error('El código está vacío.');
   const tag = c.slice(0, 3), body = c.slice(3);
   if (tag !== 'ZH1' && tag !== 'ZH0') throw new Error('Eso no parece un código de ZeroHop.');
@@ -1308,6 +1346,9 @@ async function joinWithOffer(raw){
   const p = await unpack(raw);
   if (p.k !== 'o') throw new Error('Ese código es una respuesta, no una invitación.');
   const who = await identityOf(p);
+  // pegarse la propia invitación es un error común: se conectaría con uno mismo
+  if (who.id && who.id === ME.fp)
+    throw new Error('Esa invitación es tuya: tenés que pasársela a la otra persona y pegar la respuesta que te devuelva.');
   const conv = convs.get(who.id) || makeConv(who.id, who.name || 'Contacto', who.jwk);
   if (conv.status !== 'offline') closeConv(conv, false);
   if (who.name) conv.name = who.name;
@@ -1331,6 +1372,10 @@ async function joinWithOffer(raw){
 }
 
 /* ───────────── Protocolo del canal ───────────── */
+// Un id que llega del otro lado se usa como clave de mensaje y como nombre de
+// archivo en disco: lo dejamos en algo inofensivo o inventamos uno nuestro.
+const safeId = v => (typeof v === 'string' && v ? v.replace(/[^\w.:-]/g, '').slice(0, 48) : '') || uid();
+
 function rawSend(conv, obj){
   if (conv.dc && conv.dc.readyState === 'open'){ conv.dc.send(JSON.stringify(obj)); return true; }
   return false;
@@ -1338,7 +1383,9 @@ function rawSend(conv, obj){
 
 async function onData(conv, ev){
   if (typeof ev.data !== 'string') return onBinary(conv, ev.data);
-  let m; try { m = JSON.parse(ev.data); } catch { return; }
+  let m;
+  try { m = JSON.parse(ev.data); } catch { return; }
+  if (!m || typeof m !== 'object') return;      // 'null', un número o un string suelto
 
   switch (m.t){
     case 'hello': {
@@ -1374,34 +1421,37 @@ async function onData(conv, ev){
       if (current === conv) paintPeer(conv);
       break;
     }
-    case 'msg':
+    case 'msg': {
       setTyping(conv, false);
-      addMsg(conv, { id: m.id, dir: 'in', kind: 'text', text: String(m.text ?? '').slice(0, 8000), ts: m.ts || Date.now() });
-      rawSend(conv, { t: 'ack', id: m.id, s: 'delivered' });
-      if (current === conv && document.hasFocus() && nearBottom()) rawSend(conv, { t: 'ack', id: m.id, s: 'read' });
-      else conv.unreadIds.add(m.id);
+      const id = safeId(m.id);
+      addMsg(conv, { id, dir: 'in', kind: 'text', text: String(m.text ?? '').slice(0, 8000), ts: m.ts || Date.now() });
+      rawSend(conv, { t: 'ack', id, s: 'delivered' });
+      if (current === conv && document.hasFocus() && nearBottom()) rawSend(conv, { t: 'ack', id, s: 'read' });
+      else conv.unreadIds.add(id);
       break;
+    }
     case 'ack':
-      setTick(conv, m.id, m.s);
+      setTick(conv, safeId(m.id), m.s);
       break;
     case 'typing':
       setTyping(conv, !!m.v);
       break;
     case 'fmeta': {
       setTyping(conv, false);
-      const name = clean(m.name) || 'archivo', size = +m.size || 0, mime = m.mime || '';
-      addMsg(conv, { id: m.id, dir: 'in', kind: 'file', name, size, mime, ts: m.ts || Date.now(), progress: 0 });
+      const id = safeId(m.id), name = fileName(m.name) || 'archivo', mime = m.mime || '';
+      const size = Math.max(0, Math.floor(+m.size) || 0);
+      addMsg(conv, { id, dir: 'in', kind: 'file', name, size, mime, ts: m.ts || Date.now(), progress: 0 });
       if (size > HARD_LIMIT){
-        rawSend(conv, { t: 'fdeny', id: m.id, why: 'supera ' + humanSize(HARD_LIMIT) });
-        patchMsg(conv, m.id, { problem: 'Rechazado: supera el límite de ' + humanSize(HARD_LIMIT) });
+        rawSend(conv, { t: 'fdeny', id, why: 'supera ' + humanSize(HARD_LIMIT) });
+        patchMsg(conv, id, { problem: 'Rechazado: supera el límite de ' + humanSize(HARD_LIMIT) });
         break;
       }
       // el sink se resuelve en paralelo: los chunks se encolan, no se pierden
-      conv.incoming = { id: m.id, name, size, mime, got: 0, sinkP: makeSink(m.id, size), q: Promise.resolve() };
+      conv.incoming = { id, name, size, mime, got: 0, sinkP: makeSink(id, size), q: Promise.resolve() };
       conv.incoming.sinkP.then(sink => {
         if (sink) return;
-        rawSend(conv, { t: 'fdeny', id: m.id, why: 'sin lugar para archivos grandes' });
-        patchMsg(conv, m.id, { problem: 'Tu navegador no pudo recibir un archivo de este tamaño' });
+        rawSend(conv, { t: 'fdeny', id, why: 'sin lugar para archivos grandes' });
+        patchMsg(conv, id, { problem: 'Tu navegador no pudo recibir un archivo de este tamaño' });
       });
       break;
     }
@@ -1409,8 +1459,8 @@ async function onData(conv, ev){
       finishIncoming(conv);
       break;
     case 'fdeny':
-      conv.denied.add(m.id);
-      patchMsg(conv, m.id, { problem: 'No lo pudo recibir' + (m.why ? ' (' + esc(clean(m.why)) + ')' : '') });
+      conv.denied.add(safeId(m.id));
+      patchMsg(conv, safeId(m.id), { problem: 'No lo pudo recibir' + (m.why ? ' (' + esc(clean(m.why)) + ')' : '') });
       break;
     case 'bye':
       linkDown(conv, `<b>${esc(conv.name)}</b> cerró la conversación.`);
@@ -1603,6 +1653,9 @@ async function toggleNotify(){
 
 /* ───────────── Mensajes: datos + render ───────────── */
 function addMsg(conv, m){
+  // el otro lado puede repetir un id (par con bugs, o un reintento cuyo original
+  // sí había llegado): con uno alcanza
+  if (conv.msgs.some(x => x.id === m.id)) return;
   m.state = m.state || (m.dir === 'out' ? 'sent' : '');
   conv.msgs.push(m);
   conv.lastTs = m.ts;
@@ -1797,6 +1850,7 @@ function markOnline(conv){
 }
 function linkDown(conv, reason, avisar){
   if (conv.status === 'offline') return;
+  const aMedias = conv.incoming;              // un archivo que venía entrando
   closeConv(conv, !!avisar);
   conv.preview = 'Sin conexión · tocá para reinvitar';
   // lo que salió pero nunca se confirmó: no sabemos si llegó, y lo decimos
@@ -1805,6 +1859,13 @@ function linkDown(conv, reason, avisar){
     if (m.dir === 'out' && m.state === 'sent' && !m.problem){
       m.problem = 'Sin confirmar'; dudosos++;
     }
+  }
+  // un archivo a medio recibir no se completa nunca: mejor decirlo que dejar
+  // la barra de progreso congelada para siempre
+  if (aMedias){
+    const m = conv.msgs.find(x => x.id === aMedias.id);
+    if (m && !m.done){ m.problem = 'Se cortó la transferencia'; dudosos++; }
+    aMedias.sinkP.then(s => s && s.abort()).catch(() => {});
   }
   if (reason) sysMsg(conv, reason, false);
   if (current === conv){
@@ -2253,7 +2314,9 @@ function flushRead(){
 }
 
 /* ───────────── Ajustes: red e identidad ───────────── */
-const IP_RE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]{2,45})$/;
+// IPv4 con octetos de verdad (999.1.1.1 no es una IP) o IPv6 abreviado
+const OCT = '(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
+const IP_RE = new RegExp(`^(?:${OCT}(\\.${OCT}){3}|(?=.*:.*:)[0-9a-fA-F:]{2,45})$`);
 function loadNet(){
   try {
     const a = JSON.parse(localStorage.getItem('zh:adv') || '{}');
@@ -2383,6 +2446,7 @@ $('#mi-forget').addEventListener('click', () => {
   if (!confirm('¿Eliminar a ' + current.name + ' de tu lista? Se corta la conexión si está activa.')) return;
   closeConv(current, true);
   convs.delete(current.id);
+  olvidados.add(current.id);
   saveContacts();
   goHome();
 });
@@ -2422,6 +2486,7 @@ $('#btn-wipe').addEventListener('click', () => {
   localStorage.removeItem('zh:contacts');
   localStorage.removeItem('zh:name');
   localStorage.removeItem('zh:prefs');
+  localStorage.removeItem('zh:onboarded');   // sin nombre, arranca de cero: vuelve a preguntarlo
   idbClear().catch(() => {}).then(() => location.reload());
 });
 $('#vpn-ip').addEventListener('input', e => {

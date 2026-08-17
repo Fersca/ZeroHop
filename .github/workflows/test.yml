@@ -22,3 +22,6 @@ jobs:
 
       # las suites levantan su propio servidor estático y su propio Chromium
       - run: npm test
+
+      # y abierta como archivo local, que es el otro modo de uso soportado
+      - run: ZH_URL=file://$PWD/index.html npm test

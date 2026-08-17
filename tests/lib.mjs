@@ -28,7 +28,12 @@ export async function newUser(env, name, opts = {}){
     document.addEventListener('securitypolicyviolation',
       e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`.trim()));
   });
+  if (opts.initScript) await page.addInitScript(opts.initScript);
   await page.goto(env.url);
+  // el boot es async (espera la identidad): hay que darle tiempo a decidir qué
+  // pantalla muestra antes de preguntar, o el test corre contra una app a medio arrancar
+  await page.waitForSelector('#welcome:not([hidden]), #home:not([hidden]), #chat:not([hidden])',
+    { timeout: 20000 });
   // primer uso: nombre y adentro
   if (await page.isVisible('#welcome')){
     await page.fill('#wel-name', name);
@@ -109,6 +114,12 @@ export async function lastIn(page){
   const all = await page.$$eval('.row.in .bubble', ns => ns.map(n => n.innerText));
   return (all.pop() || '').split('\n').slice(1).join('\n') || all.pop() || '';
 }
+
+/** Manda algo crudo por el DataChannel, como lo haría un par hostil o con bugs. */
+export const raw = (page, payload) => page.evaluate(p => {
+  const c = [...convs.values()].find(x => x.dc && x.dc.readyState === 'open');
+  c.dc.send(typeof p === 'string' ? p : JSON.stringify(p));
+}, payload);
 
 /** Violaciones de CSP registradas en esa pestaña (necesita newUser). */
 export const cspViolations = page => page.evaluate(() => window.__csp || []);

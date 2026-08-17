@@ -175,9 +175,9 @@ más lento, pero no le mostrás tu IP real a la otra persona.
 
 ## Tests
 
-Siete suites end-to-end que manejan Chromium de verdad: dos o más navegadores con perfiles
-separados que se conectan entre sí, se mandan mensajes y archivos, se desconectan y
-reconectan. No hay mocks de WebRTC — las conexiones son reales.
+Catorce suites end-to-end (223 verificaciones) que manejan Chromium de verdad: dos o más
+navegadores con perfiles separados que se conectan entre sí, se mandan mensajes y archivos,
+se desconectan y reconectan. No hay mocks de WebRTC — las conexiones son reales.
 
 ```bash
 npm install
@@ -187,12 +187,33 @@ npm test -- files agenda  # solo las que coincidan
 ZH_URL=file://$PWD/index.html npm test   # contra el archivo local, sin servidor
 ```
 
-El runner levanta su propio servidor estático, así que no hace falta nada corriendo antes.
-Cubren: conexión y acuses, transferencia de archivos con integridad byte a byte, límites y
-escritura a disco, mensajes sin confirmar y reintento, persistencia de la agenda, identidad
-verificada y detección de impostores, varias conversaciones en paralelo, links y deep links
-de WhatsApp, y el escenario VPN con candidato manual. Corren también en CI
-(`.github/workflows/test.yml`) en cada push.
+El runner levanta su propio servidor estático y descubre las suites solo (alcanza con dejar
+un archivo nuevo en `tests/suites/`), así que no hace falta nada corriendo antes.
+
+| Suite | Qué cubre |
+|---|---|
+| `01-chat` | conexión, escapado de HTML, indicador de escritura, acuses, cortar a mano |
+| `02-files` | 8 MB byte a byte, imágenes, cola de envío, límites, escritura a disco |
+| `03-errors` | mensajes sin confirmar, reintento, códigos inválidos con error entendible |
+| `04-agenda` | contactos que sobreviven al cierre, reinvitación, impostores |
+| `05-multi` | tres conversaciones en paralelo, no leídos por conversación, título de pestaña |
+| `06-links` | invitación como link, deep links de WhatsApp, dos pestañas por BroadcastChannel |
+| `07-vpn` | candidato manual, STUN, TURN, relay forzado, validación de IP |
+| `08-csp` | CSP por hash, inyecciones bloqueadas, notificaciones, clave no extraíble |
+| `09-pwa` | onboarding, 360 px sin desborde, accesibilidad, manifest y service worker |
+| `10-hostil` | basura, tamaños absurdos, ids repetidos, HTML y firmas falsas del otro lado |
+| `11-codigos` | formatos, el código pegado de seis maneras, navegadores sin Compression/WebCrypto |
+| `12-uso` | 300 mensajes, scroll y leído, emojis, archivos raros, buscador, tema, borrar todo |
+| `13-privacidad` | auditoría del tráfico HTTP y de lo que queda guardado en el navegador |
+| `14-pestanas` | mismo perfil en dos pestañas: la agenda no se pisa; autoinvitación |
+
+La suite de privacidad es la que audita la promesa del producto: mira **todos** los pedidos
+HTTP de las dos pestañas mientras se conversa (ninguno a un tercero, ni un POST, ni el
+mensaje ni el código en ninguna URL), revisa del lado del servidor de prueba que el código
+de invitación nunca llegó, y confirma que al recargar no queda nada de lo hablado.
+
+Corren también en CI (`.github/workflows/test.yml`) en cada push, en los dos modos
+(servida por http y abierta como archivo).
 
 ## Instalable como app (PWA)
 
