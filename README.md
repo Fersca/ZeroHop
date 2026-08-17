@@ -119,10 +119,10 @@ encontrarte».
 - **Ningún mensaje pasa por un servidor.** El canal es un `RTCDataChannel` cifrado con DTLS
   directamente entre los dos navegadores.
 - **No hay historial de mensajes.** Al cerrar la pestaña, las conversaciones desaparecen.
-  En `localStorage` quedan solo tu identidad (el par de claves), tu nombre, la agenda de
-  contactos (nombre, clave pública y teléfono si lo cargaste) y las preferencias. Nunca el
-  contenido de los chats.
-  Todo eso se borra con un botón en Ajustes.
+  Lo único que queda guardado es: tu clave privada en **IndexedDB** (no extraíble), y en
+  `localStorage` tu clave pública, tu nombre, el teléfono si lo cargaste, la agenda de
+  contactos y las preferencias. Nunca el contenido de los chats. Todo eso se borra con un
+  botón en Ajustes.
 - **No hay cuentas, ni registro, ni analytics, ni pedidos de red externos.**
 - Por defecto se usan servidores **STUN** públicos de Google, que sirven únicamente para
   descubrir la IP pública y atravesar el NAT: no ven ni transportan el contenido. Se pueden
