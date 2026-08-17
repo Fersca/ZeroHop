@@ -23,15 +23,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # enablement: true prende Pages si el repo todavía no lo tiene activado
-      - uses: actions/configure-pages@v5
+      # enablement: true intenta prender Pages solo; el token de Actions no
+      # siempre puede crear el sitio, así que no rompemos el build por eso.
+      - id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
         with:
           enablement: true
 
+      - if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::Pages no está activado todavía. Activalo en \
+          Settings → Pages → Source: GitHub Actions y volvé a correr este workflow."
+
       # el sitio es el repo entero: index.html es autocontenido
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
       - id: deploy
+        if: steps.pages.outcome == 'success'
         uses: actions/deploy-pages@v4
