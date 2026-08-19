@@ -123,3 +123,42 @@ export const raw = (page, payload) => page.evaluate(p => {
 
 /** Violaciones de CSP registradas en esa pestaña (necesita newUser). */
 export const cspViolations = page => page.evaluate(() => window.__csp || []);
+
+/* ───────────── Leer los QR que dibuja la app ─────────────
+   La app solo genera códigos: quien los lee es la cámara del otro teléfono.
+   Para probar que de verdad se leen usamos ZXing, el decodificador de
+   referencia, sobre el SVG que quedó en pantalla. */
+let zxing = null;
+async function decoder(){
+  if (zxing) return zxing;
+  const [mod, fs] = await Promise.all([import('zxing-wasm/reader'), import('node:fs/promises')]);
+  const wasm = await fs.readFile(new URL(import.meta.resolve('zxing-wasm/reader/zxing_reader.wasm')));
+  await mod.prepareZXingModule({ overrides: { wasmBinary: wasm.buffer }, fireImmediately: true });
+  return (zxing = mod);
+}
+
+/** Reconstruye la matriz desde el <path> del SVG: prueba lo que se ve, no lo que se calculó. */
+export const qrMatrix = page => page.$eval('.qr', svg => {
+  const lado = Number(svg.getAttribute('viewBox').split(' ')[2]);
+  const filas = Array.from({ length: lado }, () => new Uint8Array(lado));
+  for (const [, x, y, n] of svg.querySelector('path').getAttribute('d').matchAll(/M(\d+) (\d+)h(\d+)/g))
+    for (let i = 0; i < +n; i++) filas[+y][+x + i] = 1;
+  return { lado, filas: filas.map(f => [...f]) };
+});
+
+/** Decodifica el QR que está en pantalla y devuelve su texto (o null). */
+export async function readQr(page, escala = 4){
+  const { lado, filas } = await qrMatrix(page);
+  const w = lado * escala;
+  const data = new Uint8ClampedArray(w * w * 4).fill(255);
+  for (let y = 0; y < lado; y++) for (let x = 0; x < lado; x++){
+    if (!filas[y][x]) continue;
+    for (let dy = 0; dy < escala; dy++) for (let dx = 0; dx < escala; dx++){
+      const p = ((y * escala + dy) * w + x * escala + dx) * 4;
+      data[p] = data[p + 1] = data[p + 2] = 0;
+    }
+  }
+  const { readBarcodes } = await decoder();
+  const res = await readBarcodes({ data, width: w, height: w }, { formats: ['QRCode'], tryHarder: true });
+  return res[0] ? res[0].text : null;
+}

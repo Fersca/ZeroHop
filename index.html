@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <!-- El script inline se permite por su hash: nada externo puede cargarse y un
      script inyectado no corre. Si editás el script, corré: npm run csp -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XHuE3e164vKoDJnRAhvQZxEiVqxkBEgOmIvZQEZHMss='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'self' blob:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Q7W7K1fpdpH8249tehtTvieldSsYYLNTzZP1DsEDEsY='; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'self' blob:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>ZeroHop · Chat P2P sin servidor</title>
 <meta name="description" content="Chat privado navegador a navegador con WebRTC. Sin servidor intermedio, sin cuentas, sin historial.">
 <link rel="manifest" href="manifest.json">
@@ -441,6 +441,11 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
 .safety{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:19px;letter-spacing:2px;
   text-align:center;background:var(--panel-2);border:1px dashed var(--line);border-radius:12px;padding:16px;
   color:var(--accent);font-weight:600;word-break:break-all}
+/* El QR va siempre negro sobre blanco: los lectores necesitan ese contraste,
+   así que no sigue el tema oscuro. */
+.qr{display:block;width:100%;max-width:340px;margin:0 auto;background:#fff;
+  border-radius:12px;padding:10px;box-shadow:var(--shadow)}
+.qr-tip{margin:12px 0 0;font-size:12.5px;color:var(--text-soft);text-align:center;line-height:1.5}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .kv:last-child{border:0}
 .kv span:first-child{color:var(--text-soft)}
@@ -584,6 +589,10 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
             <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
             Otra app
           </button>
+          <button class="btn btn-ghost btn-sm" data-qr="#offer-out">
+            <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h3v3h-3v-3Zm5 0h3v3h-3v-3Zm-5 5h3v3h-3v-3Zm5 0h3v3h-3v-3Z"/></svg>
+            Mostrar QR
+          </button>
           <button class="btn btn-ghost btn-sm" data-fmt="#offer-out">Ver código suelto</button>
         </div>
         <div class="field" style="margin:12px 0 0">
@@ -630,6 +639,10 @@ label.lbl{display:block;font-size:12px;font-weight:600;color:var(--text-soft);ma
           <button class="btn btn-ghost btn-sm" data-share="#answer-out">
             <svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2 .8l-7-4a3 3 0 0 0 0-1.6l7-4A3 3 0 1 0 15 5l-7 4a3 3 0 1 0 0 6l7 4A3 3 0 1 0 18 16Z"/></svg>
             Otra app
+          </button>
+          <button class="btn btn-ghost btn-sm" data-qr="#answer-out">
+            <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h3v3h-3v-3Zm5 0h3v3h-3v-3Zm-5 5h3v3h-3v-3Zm5 0h3v3h-3v-3Z"/></svg>
+            Mostrar QR
           </button>
           <button class="btn btn-ghost btn-sm" data-fmt="#answer-out">Ver código suelto</button>
         </div>
@@ -2099,6 +2112,288 @@ function refreshFmt(){
   updateWaLinks();
 }
 
+/* ───────────── QR: el mecanismo para cuando están cara a cara ─────────────
+   Genera el código (modo byte, corrección L, versiones 1 a 40). No hace falta
+   leerlo desde acá: lo escanea la cámara del otro teléfono, que abre el link.
+   Sin librerías: todo tiene que entrar en este archivo. */
+const QR_EXP = new Uint8Array(512), QR_LOG = new Uint8Array(256);
+{
+  let x = 1;
+  for (let i = 0; i < 255; i++){ QR_EXP[i] = x; QR_LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) QR_EXP[i] = QR_EXP[i - 255];
+}
+const qrMul = (a, b) => (a && b) ? QR_EXP[QR_LOG[a] + QR_LOG[b]] : 0;
+
+// Por versión, para el nivel L: [corrección por bloque, bloques y datos del
+// grupo 1, bloques y datos del grupo 2]. Es la tabla del estándar.
+const QR_RS = [null,
+  [7,1,19,0,0],     [10,1,34,0,0],    [15,1,55,0,0],     [20,1,80,0,0],     [26,1,108,0,0],
+  [18,2,68,0,0],    [20,2,78,0,0],    [24,2,97,0,0],     [30,2,116,0,0],    [18,2,68,2,69],
+  [20,4,81,0,0],    [24,2,92,2,93],   [26,4,107,0,0],    [30,3,115,1,116],  [22,5,87,1,88],
+  [24,5,98,1,99],   [28,1,107,5,108], [30,5,120,1,121],  [28,3,113,4,114],  [28,3,107,5,108],
+  [28,4,116,4,117], [28,2,111,7,112], [30,4,121,5,122],  [30,6,117,4,118],  [26,8,106,4,107],
+  [28,10,114,2,115],[30,8,122,4,123], [30,3,117,10,118], [30,7,116,7,117],  [30,5,115,10,116],
+  [30,13,115,3,116],[30,17,115,0,0],  [30,17,115,1,116], [30,13,115,6,116], [30,12,121,7,122],
+  [30,6,121,14,122],[30,17,122,4,123],[30,4,122,18,123], [30,20,117,4,118], [30,19,118,6,119]];
+
+// Centros de los patrones de alineación de cada versión.
+const QR_ALIGN = [null, [], [6,18],[6,22],[6,26],[6,30],[6,34],
+  [6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],
+  [6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],
+  [6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],
+  [6,30,58,86,114],[6,34,62,90,118],
+  [6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],
+  [6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],
+  [6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],
+  [6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]];
+
+const QR_MASKS = [
+  (y, x) => (y + x) % 2 === 0,
+  (y, x) => y % 2 === 0,
+  (y, x) => x % 3 === 0,
+  (y, x) => (y + x) % 3 === 0,
+  (y, x) => (((y >> 1) + Math.floor(x / 3)) % 2) === 0,
+  (y, x) => ((y * x) % 2) + ((y * x) % 3) === 0,
+  (y, x) => ((((y * x) % 2) + ((y * x) % 3)) % 2) === 0,
+  (y, x) => ((((y + x) % 2) + ((y * x) % 3)) % 2) === 0
+];
+
+const qrDataCw = v => QR_RS[v][1] * QR_RS[v][2] + QR_RS[v][3] * QR_RS[v][4];
+// El encabezado son 4 bits de modo más el contador: 8 bits hasta la v9, 16 después
+const qrCap = v => Math.floor((qrDataCw(v) * 8 - 4 - (v < 10 ? 8 : 16)) / 8);
+
+function qrEc(data, n){
+  let g = [1];
+  for (let i = 0; i < n; i++){
+    const ng = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++){ ng[j] ^= g[j]; ng[j + 1] ^= qrMul(g[j], QR_EXP[i]); }
+    g = ng;
+  }
+  const res = new Uint8Array(data.length + n);
+  res.set(data);
+  for (let i = 0; i < data.length; i++){
+    const f = res[i];
+    if (!f) continue;
+    for (let j = 0; j < g.length; j++) res[i + j] ^= qrMul(g[j], f);
+  }
+  return res.subarray(data.length);
+}
+
+function qrCodewords(bytes, v){
+  const bits = [];
+  const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  push(4, 4);                                        // modo byte
+  push(bytes.length, v < 10 ? 8 : 16);
+  for (const b of bytes) push(b, 8);
+  const total = qrDataCw(v) * 8;
+  for (let i = 0; i < 4 && bits.length < total; i++) bits.push(0);   // terminador
+  while (bits.length % 8) bits.push(0);
+
+  const cw = new Uint8Array(qrDataCw(v));
+  for (let i = 0; i < bits.length; i += 8){
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+    cw[i >> 3] = b;
+  }
+  const PAD = [0xec, 0x11];                          // relleno del estándar
+  for (let i = bits.length / 8, k = 0; i < cw.length; i++, k++) cw[i] = PAD[k % 2];
+
+  // Los bloques se intercalan: un codeword de cada uno por vuelta.
+  const [ec, n1, d1, n2, d2] = QR_RS[v];
+  const bloques = [];
+  let p = 0;
+  for (let i = 0; i < n1; i++){ bloques.push(cw.subarray(p, p + d1)); p += d1; }
+  for (let i = 0; i < n2; i++){ bloques.push(cw.subarray(p, p + d2)); p += d2; }
+  const ecs = bloques.map(b => qrEc(b, ec));
+  const out = [];
+  for (let i = 0, max = Math.max(d1, d2); i < max; i++) for (const b of bloques) if (i < b.length) out.push(b[i]);
+  for (let i = 0; i < ec; i++) for (const e of ecs) out.push(e[i]);
+  return out;
+}
+
+// Patrones fijos: buscadores, separadores, tiempo, alineación y los huecos
+// reservados para el formato y la versión.
+function qrSkeleton(v){
+  const size = v * 4 + 17;
+  const m  = Array.from({ length: size }, () => new Int8Array(size));
+  const fn = Array.from({ length: size }, () => new Uint8Array(size));
+  const set = (r, c, val) => { m[r][c] = val; fn[r][c] = 1; };
+
+  const buscador = (r0, c0) => {
+    for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++){
+      const y = r0 + r, x = c0 + c;
+      if (y < 0 || x < 0 || y >= size || x >= size) continue;
+      const dentro = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+      const anillo = r === 0 || r === 6 || c === 0 || c === 6;
+      const centro = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+      set(y, x, dentro && (anillo || centro) ? 1 : 0);
+    }
+  };
+  buscador(0, 0); buscador(0, size - 7); buscador(size - 7, 0);
+
+  for (let i = 8; i < size - 8; i++){ set(6, i, i % 2 === 0 ? 1 : 0); set(i, 6, i % 2 === 0 ? 1 : 0); }
+
+  for (const r of QR_ALIGN[v]) for (const c of QR_ALIGN[v]){
+    if ((r === 6 && c === 6) || (r === 6 && c === size - 7) || (r === size - 7 && c === 6)) continue;
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+      set(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1 ? 1 : 0);
+  }
+
+  set(size - 8, 8, 1);                                          // módulo siempre oscuro
+  for (let i = 0; i <= 8; i++) if (i !== 6){ fn[8][i] = 1; fn[i][8] = 1; }
+  fn[8][8] = 1;
+  for (let i = 0; i < 8; i++){ fn[8][size - 1 - i] = 1; fn[size - 1 - i][8] = 1; }
+  if (v >= 7) for (let i = 0; i < 18; i++){
+    const a = Math.floor(i / 3), b = size - 11 + (i % 3);
+    fn[a][b] = 1; fn[b][a] = 1;
+  }
+  return { m, fn, size };
+}
+
+// Los datos se escriben en zigzag de a dos columnas, de abajo a la derecha
+// hacia arriba, salteando la columna de tiempo.
+function qrPlace(m, fn, size, cw){
+  const bits = [];
+  for (const b of cw) for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  let idx = 0, sube = true;
+  for (let der = size - 1; der >= 1; der -= 2){
+    if (der === 6) der = 5;
+    for (let k = 0; k < size; k++){
+      const y = sube ? size - 1 - k : k;
+      for (let c = 0; c < 2; c++){
+        const x = der - c;
+        if (fn[y][x]) continue;
+        m[y][x] = idx < bits.length ? bits[idx] : 0;
+        idx++;
+      }
+    }
+    sube = !sube;
+  }
+}
+
+function qrFormat(m, size, mask){
+  const raw = (0b01 << 3) | mask;                    // 01 = nivel L
+  let d = raw << 10;
+  for (let i = 4; i >= 0; i--) if ((d >> (10 + i)) & 1) d ^= 0x537 << i;
+  const f = ((raw << 10) | (d & 0x3ff)) ^ 0x5412;
+  const bit = i => (f >> (14 - i)) & 1;              // el bit 0 es el más significativo
+  for (let i = 0; i <= 5; i++) m[8][i] = bit(i);
+  m[8][7] = bit(6); m[8][8] = bit(7); m[7][8] = bit(8);
+  for (let i = 9; i <= 14; i++) m[14 - i][8] = bit(i);
+  for (let i = 0; i <= 6; i++) m[size - 1 - i][8] = bit(i);
+  for (let i = 7; i <= 14; i++) m[8][size - 15 + i] = bit(i);
+}
+
+function qrVersion(m, size, v){
+  if (v < 7) return;
+  let d = v << 12;
+  for (let i = 5; i >= 0; i--) if ((d >> (12 + i)) & 1) d ^= 0x1f25 << i;
+  const vi = (v << 12) | (d & 0xfff);
+  for (let i = 0; i < 18; i++){
+    const b = (vi >> i) & 1, a = Math.floor(i / 3), c = size - 11 + (i % 3);
+    m[a][c] = b; m[c][a] = b;
+  }
+}
+
+// Las cuatro penalizaciones del estándar: gana la máscara que menos molesta.
+function qrPenalty(m, size){
+  let p = 0, oscuros = 0;
+  const linea = get => {
+    let run = 1, prev = get(0);
+    for (let i = 1; i < size; i++){
+      const cur = get(i);
+      if (cur === prev){ run++; continue; }
+      if (run >= 5) p += 3 + (run - 5);
+      run = 1; prev = cur;
+    }
+    if (run >= 5) p += 3 + (run - 5);
+  };
+  const P1 = [1,0,1,1,1,0,1,0,0,0,0], P2 = [0,0,0,0,1,0,1,1,1,0,1];
+  const busca = get => {
+    for (let i = 0; i + 11 <= size; i++){
+      let a = true, b = true;
+      for (let k = 0; k < 11; k++){
+        if (get(i + k) !== P1[k]) a = false;
+        if (get(i + k) !== P2[k]) b = false;
+      }
+      if (a) p += 40;
+      if (b) p += 40;
+    }
+  };
+  for (let i = 0; i < size; i++){
+    linea(j => m[i][j]); linea(j => m[j][i]);
+    busca(j => m[i][j]); busca(j => m[j][i]);
+  }
+  for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++){
+    const a = m[y][x];
+    if (a === m[y][x + 1] && a === m[y + 1][x] && a === m[y + 1][x + 1]) p += 3;
+  }
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (m[y][x]) oscuros++;
+  return p + 10 * Math.floor(Math.abs(oscuros * 100 / (size * size) - 50) / 5);
+}
+
+function qrEncode(text){
+  const bytes = new TextEncoder().encode(text);
+  let v = 0;
+  for (let i = 1; i <= 40; i++) if (qrCap(i) >= bytes.length){ v = i; break; }
+  if (!v) throw new Error('el texto no entra en un QR');
+
+  const cw = qrCodewords(bytes, v);
+  const { m, fn, size } = qrSkeleton(v);
+  qrPlace(m, fn, size, cw);
+
+  let mejor = null, menor = Infinity;
+  for (let mask = 0; mask < 8; mask++){
+    const t = m.map(r => Int8Array.from(r));
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++)
+      if (!fn[y][x] && QR_MASKS[mask](y, x)) t[y][x] ^= 1;
+    qrFormat(t, size, mask);
+    qrVersion(t, size, v);
+    const p = qrPenalty(t, size);
+    if (p < menor){ menor = p; mejor = t; }
+  }
+  return { size, version: v, modules: mejor };
+}
+
+// Un solo <path>: con 100×100 módulos, un <rect> por módulo sería pesado.
+function qrSvg(text, etiqueta){
+  const { size, modules } = qrEncode(text);
+  const q = 4, lado = size + q * 2;                  // zona muda: 4 módulos
+  let d = '';
+  for (let y = 0; y < size; y++){
+    let x = 0;
+    while (x < size){
+      if (!modules[y][x]){ x++; continue; }
+      let n = 0;
+      while (x + n < size && modules[y][x + n]) n++;
+      d += `M${x + q} ${y + q}h${n}v1h-${n}z`;
+      x += n;
+    }
+  }
+  return `<svg class="qr" viewBox="0 0 ${lado} ${lado}" shape-rendering="crispEdges"
+            role="img" aria-label="${esc(etiqueta || 'Código QR')}">
+            <rect width="${lado}" height="${lado}" fill="#fff"/>
+            <path fill="#000" d="${d}"/>
+          </svg>`;
+}
+
+function showQr(sel){
+  const txt = $(sel).value;
+  if (!txt) return;
+  const esLink = /^https?:/i.test(txt);
+  let svg;
+  try { svg = qrSvg(txt, esLink ? 'Código QR con el link de la invitación' : 'Código QR con el código de invitación'); }
+  catch { return toast('El código es muy largo para un QR: pasalo por link'); }
+  sheet(`
+    <h3>Escanealo con el otro teléfono</h3>
+    <p>${esLink
+      ? 'Abrí la cámara del otro teléfono y apuntá: al tocar el aviso se abre ZeroHop y se une a la conversación, sin copiar ni pegar nada.'
+      : 'Apuntá la cámara del otro teléfono. Como estás abriendo el archivo local, el QR trae el código suelto: hay que pegarlo en ZeroHop.'}</p>
+    ${svg}
+    <p class="qr-tip">Si no lo engancha, acercá la cámara y subí el brillo de la pantalla.</p>
+    <button class="btn btn-primary" style="margin-top:16px" data-close-sheet>Listo</button>`);
+}
+
 let bc = null;
 try { bc = new BroadcastChannel('zerohop'); } catch {}
 if (bc) bc.onmessage = async ev => {
@@ -2279,6 +2574,7 @@ $$('[data-share]').forEach(b => b.addEventListener('click', async () => {
   if (navigator.share){ try { await navigator.share({ title: 'ZeroHop', text: txt }); return; } catch {} }
   toast(await copyText(txt) ? 'Copiado al portapapeles' : 'No se pudo compartir');
 }));
+$$('[data-qr]').forEach(b => b.addEventListener('click', () => showQr(b.dataset.qr)));
 $$('[data-fmt]').forEach(b => b.addEventListener('click', () => { fmtLink = !fmtLink; refreshFmt(); }));
 
 /* ───────────── Envío de texto ───────────── */

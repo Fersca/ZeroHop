@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [claude/p2p-webrtc-chat-ype7jc, main]
+    branches: [claude/p2p-webrtc-chat-ype7jc, claude/webrtc-chat-pwa-03p524, main]
   pull_request:
   workflow_dispatch:
 

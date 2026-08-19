@@ -26,13 +26,27 @@ activar los avisos. A quien llega por una invitación le habla de eso en vez del
    **el chat se conecta solo**; si no, lo pega en el paso 2 de su pestaña.
 5. De ahí en más los mensajes van directo de un navegador al otro.
 
-Con el botón **Ver código suelto** se cambia el link por el código pelado (`ZH1…`), útil
-si la otra persona abre el archivo HTML local en vez de la página. Los dos campos aceptan
-tanto el link completo como el código.
-
 Los códigos son el SDP de WebRTC más tu nombre y tu clave pública, comprimidos con
 `deflate-raw` y codificados en base64url (~830 caracteres). Solo sirven para esa conexión:
 al recargar la página dejan de valer.
+
+### Las cuatro maneras de pasarse la invitación
+
+Da igual cuál se use: los dos extremos aceptan tanto el link como el código pelado, y lo
+que viaja es siempre lo mismo. Se elige por comodidad, no por seguridad.
+
+| | Cuándo conviene |
+|---|---|
+| **Link** | Lo normal. Se copia con **Copiar link** o se manda con **Otra app** (el compartir del sistema) y se pega en cualquier chat, mail o mensaje. |
+| **WhatsApp** | Están hablando por ahí. Abre WhatsApp con el mensaje escrito y, si cargaste el teléfono, directo en su chat. |
+| **QR** | Están en el mismo lugar. Uno toca **Mostrar QR** y el otro lo apunta con la cámara del teléfono: al abrirse el link se une, sin copiar ni pegar. La vuelta es igual, con el QR de la respuesta. |
+| **Código suelto** | La otra persona abre el archivo HTML en su máquina, donde no hay links que abrir. **Ver código suelto** cambia el link por el `ZH1…` pelado. |
+
+El QR se dibuja en el mismo archivo, sin librerías ni pedidos de red: es un codificador de
+~200 líneas (modo byte, corrección L, versiones 1 a 40). Una invitación entra en una
+versión 21 —101×101 módulos—, así que conviene mostrarla con la pantalla brillante y
+acercar la cámara. Leer QR con la cámara desde la app **no** hace falta: eso ya lo hace el
+sistema operativo, que abre el link solo.
 
 ### Publicado como página web
 
@@ -114,6 +128,7 @@ encontrarte».
 ## Qué tiene
 
 - Varias conversaciones simultáneas, cada una con su propia conexión.
+- Cuatro maneras de pasar la invitación: link, WhatsApp, **QR** y código suelto.
 - Invitación y respuesta por WhatsApp en un toque, con el chat correcto ya abierto.
 - Mensajes de texto, con indicador de "escribiendo…" y tildes de enviado / entregado / leído.
 - Envío de archivos e imágenes (troceado en bloques de 16 KB con control de flujo:
@@ -175,7 +190,7 @@ más lento, pero no le mostrás tu IP real a la otra persona.
 
 ## Tests
 
-Catorce suites end-to-end (223 verificaciones) que manejan Chromium de verdad: dos o más
+Quince suites end-to-end (242 verificaciones) que manejan Chromium de verdad: dos o más
 navegadores con perfiles separados que se conectan entre sí, se mandan mensajes y archivos,
 se desconectan y reconectan. No hay mocks de WebRTC — las conexiones son reales.
 
@@ -206,6 +221,7 @@ un archivo nuevo en `tests/suites/`), así que no hace falta nada corriendo ante
 | `12-uso` | 300 mensajes, scroll y leído, emojis, archivos raros, buscador, tema, borrar todo |
 | `13-privacidad` | auditoría del tráfico HTTP y de lo que queda guardado en el navegador |
 | `14-pestanas` | mismo perfil en dos pestañas: la agenda no se pisa; autoinvitación |
+| `15-qr` | el QR de la invitación y el de la respuesta, leídos con un decodificador de verdad |
 
 La suite de privacidad es la que audita la promesa del producto: mira **todos** los pedidos
 HTTP de las dos pestañas mientras se conversa (ninguno a un tercero, ni un POST, ni el
